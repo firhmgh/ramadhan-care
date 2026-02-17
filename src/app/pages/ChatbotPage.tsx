@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { MessageCircle, Send, Loader2, AlertCircle } from 'lucide-react';
+import { MessageCircle, Send, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { cn } from '../components/ui/utils';
 
 export default function ChatbotPage() {
   const { chatHistory, addChatMessage, clearChatHistory } = useStore();
@@ -12,31 +13,32 @@ export default function ChatbotPage() {
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Auto scroll ke bawah
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
     }
   }, [chatHistory, isTyping]);
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
+  const handleSend = async (textInput?: string) => {
+    const messageText = textInput || input;
+    if (!messageText.trim()) return;
 
-    const userMessage = input.trim();
-    setInput('');
+    if (!textInput) setInput('');
 
-    // Add user message
     addChatMessage({
       role: 'user',
-      content: userMessage,
+      content: messageText.trim(),
       timestamp: new Date(),
     });
 
-    // Simulate AI typing
     setIsTyping(true);
 
-    // Mock AI response (in real app, this would call an API)
     setTimeout(() => {
-      const response = generateResponse(userMessage);
+      const response = generateResponse(messageText.trim());
       addChatMessage({
         role: 'assistant',
         content: response,
@@ -54,21 +56,22 @@ export default function ChatbotPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] lg:h-[calc(100vh-4rem)] p-4 lg:p-8 flex flex-col">
+    <div className="flex flex-col h-[calc(100vh-4rem)] lg:h-screen p-2 md:p-4 gap-4 max-w-full">
+      
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
+        className="flex-shrink-0 px-2"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl gradient-secondary flex items-center justify-center">
-              <MessageCircle className="w-6 h-6 text-secondary-foreground" />
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl gradient-secondary flex items-center justify-center flex-shrink-0">
+              <MessageCircle className="w-5 h-5 md:w-6 md:h-6 text-secondary-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Chatbot Islami</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-xl md:text-2xl font-bold">Chatbot Islami</h1>
+              <p className="text-xs md:text-sm text-muted-foreground">
                 Asisten spiritual Anda
               </p>
             </div>
@@ -78,67 +81,59 @@ export default function ChatbotPage() {
               variant="outline"
               size="sm"
               onClick={clearChatHistory}
-              className="rounded-xl"
+              className="rounded-xl h-9 px-3 text-xs md:text-sm hover:bg-destructive/10 hover:text-destructive transition-colors"
             >
-              Hapus Riwayat
+              <Trash2 className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Hapus Riwayat</span>
             </Button>
           )}
         </div>
       </motion.div>
 
-      {/* Chat Container */}
-      <div className="flex-1 bg-card rounded-3xl shadow-soft-md flex flex-col overflow-hidden">
-        {/* Disclaimer */}
-        {chatHistory.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="m-6 p-4 rounded-2xl bg-warning/10 border-2 border-warning/30 flex items-start gap-3"
-          >
-            <AlertCircle className="w-5 h-5 text-warning-foreground flex-shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-semibold text-warning-foreground mb-1">Perhatian</p>
-              <p className="text-muted-foreground">
-                Chatbot ini bersifat empatik dan non-judgmental, tetapi tidak memberikan fatwa resmi. 
-                Untuk masalah fiqih yang kompleks, silakan berkonsultasi dengan ulama yang kompeten.
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Messages */}
-        <ScrollArea className="flex-1 p-6" ref={scrollRef}>
-          <div className="space-y-4">
+      {/* Chat Container Utama */}
+      <div className="flex-1 bg-card md:rounded-3xl shadow-soft-md flex flex-col overflow-hidden border border-border/50 relative h-full">
+        
+        {/* Messages Area */}
+        <ScrollArea className="flex-1" ref={scrollRef}>
+          <div className="p-4 md:p-6 space-y-6 pb-4">
+            
+            {/* Empty State / Welcome Screen */}
             {chatHistory.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center py-12"
+                className="flex flex-col items-center justify-center h-full min-h-[50vh] py-8 text-center"
               >
-                <div className="w-20 h-20 mx-auto rounded-3xl gradient-spiritual flex items-center justify-center mb-4">
-                  <span className="text-4xl">🤲</span>
+                {/* Disclaimer */}
+                <div className="mb-8 w-full max-w-2xl mx-auto p-3 rounded-xl bg-warning/5 border border-warning/20 flex gap-3 text-left">
+                  <AlertCircle className="w-5 h-5 text-warning-foreground flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    <span className="font-semibold text-warning-foreground block mb-0.5">Perhatian</span>
+                    Chatbot ini bersifat empatik tetapi tidak memberikan fatwa resmi. Untuk masalah fiqih kompleks, silakan tanya ulama.
+                  </p>
                 </div>
-                <h3 className="font-semibold mb-2">Assalamu'alaikum!</h3>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Saya di sini untuk membantu Anda dengan pertanyaan seputar ibadah, motivasi spiritual, 
-                  dan dukungan emosional. Silakan mulai percakapan.
+
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-3xl gradient-spiritual flex items-center justify-center mb-6 shadow-sm">
+                  <span className="text-3xl md:text-4xl">🤲</span>
+                </div>
+                <h3 className="font-semibold text-xl md:text-2xl mb-3">Assalamu'alaikum!</h3>
+                <p className="text-sm md:text-base text-muted-foreground max-w-lg mx-auto mb-10 px-4">
+                  Saya siap membantu menjawab pertanyaan seputar ibadah, motivasi, dan dukungan spiritual.
                 </p>
                 
-                {/* Suggested Questions */}
-                <div className="mt-8 grid gap-2 max-w-md mx-auto">
+                {/* Tombol saran pertanyaan dibuat lebih lebar (max-w-2xl) dan responsive grid */}
+                <div className="w-full max-w-2xl grid grid-cols-1 md:grid-cols-2 gap-3 px-2">
                   {[
-                    "Bagaimana cara meningkatkan khusyuk dalam sholat?",
+                    "Bagaimana cara khusyuk dalam sholat?",
                     "Apa yang harus dilakukan jika terlewat sahur?",
-                    "Bagaimana mengatasi rasa malas beribadah?",
+                    "Bagaimana mengatasi malas beribadah?",
+                    "Doa agar hati tenang?",
                   ].map((question, index) => (
                     <Button
                       key={index}
                       variant="outline"
-                      onClick={() => {
-                        setInput(question);
-                        setTimeout(() => handleSend(), 100);
-                      }}
-                      className="rounded-2xl text-left justify-start h-auto py-3"
+                      onClick={() => handleSend(question)}
+                      className="w-full rounded-xl justify-start h-auto py-4 px-4 text-sm md:text-base whitespace-normal text-left hover:bg-accent/50 hover:border-accent transition-all"
                     >
                       {question}
                     </Button>
@@ -147,25 +142,28 @@ export default function ChatbotPage() {
               </motion.div>
             )}
 
+            {/* Chat History Bubbles */}
             <AnimatePresence mode="popLayout">
               {chatHistory.map((message, index) => (
                 <motion.div
-                  key={message.id}
+                  key={index}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex w-full ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] lg:max-w-[70%] rounded-2xl px-4 py-3 ${
+                    className={cn(
+                      "max-w-[85%] md:max-w-[75%] rounded-2xl px-5 py-4 text-sm md:text-base shadow-sm",
                       message.role === 'user'
-                        ? 'bg-primary text-primary-foreground ml-auto'
-                        : 'bg-accent/30 text-foreground'
-                    }`}
+                        ? "bg-primary text-primary-foreground rounded-br-none"
+                        : "bg-accent/30 text-foreground rounded-bl-none border border-accent/20"
+                    )}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <p className="text-xs mt-2 opacity-70">
+                    <p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
+                    <p className={cn(
+                      "text-[10px] md:text-xs mt-2 text-right opacity-70",
+                      message.role === 'user' ? "text-primary-foreground" : "text-muted-foreground"
+                    )}>
                       {new Date(message.timestamp).toLocaleTimeString('id-ID', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -176,32 +174,24 @@ export default function ChatbotPage() {
               ))}
             </AnimatePresence>
 
+            {/* Typing Indicator */}
             {isTyping && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex justify-start"
+                className="flex justify-start w-full"
               >
-                <div className="bg-accent/30 rounded-2xl px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
+                <div className="bg-accent/20 rounded-2xl rounded-bl-none px-4 py-4 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground mr-1">Bot sedang mengetik</span>
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map((i) => (
                       <motion.div
-                        className="w-2 h-2 rounded-full bg-primary"
-                        animate={{ scale: [1, 1.5, 1] }}
-                        transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full bg-primary/60"
+                        animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }}
                       />
-                      <motion.div
-                        className="w-2 h-2 rounded-full bg-primary"
-                        animate={{ scale: [1, 1.5, 1] }}
-                        transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
-                      />
-                      <motion.div
-                        className="w-2 h-2 rounded-full bg-primary"
-                        animate={{ scale: [1, 1.5, 1] }}
-                        transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground">Mengetik...</span>
+                    ))}
                   </div>
                 </div>
               </motion.div>
@@ -209,27 +199,28 @@ export default function ChatbotPage() {
           </div>
         </ScrollArea>
 
-        {/* Input */}
-        <div className="border-t border-border p-4">
-          <div className="flex items-end gap-2">
+        {/* Input Area - Full Width */}
+        <div className="border-t border-border p-3 md:p-5 bg-card z-10">
+          <div className="flex items-end gap-2 md:gap-3 w-full max-w-5xl mx-auto">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Tulis pertanyaan Anda..."
-              className="rounded-2xl resize-none"
+              className="flex-1 rounded-xl min-h-[50px] py-3 px-4 resize-none bg-background focus-visible:ring-1 text-base"
               disabled={isTyping}
+              autoComplete="off"
             />
             <Button
-              onClick={handleSend}
+              onClick={() => handleSend()}
               disabled={!input.trim() || isTyping}
               size="icon"
-              className="rounded-xl h-10 w-10 flex-shrink-0"
+              className="rounded-xl h-[50px] w-[50px] flex-shrink-0 shadow-sm transition-all hover:scale-105 active:scale-95"
             >
               {isTyping ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-5 h-5 ml-0.5" />
               )}
             </Button>
           </div>
@@ -239,30 +230,17 @@ export default function ChatbotPage() {
   );
 }
 
-// Mock AI response generator
+// Mock AI response generator (Tetap sama)
 function generateResponse(userMessage: string): string {
   const lowerMessage = userMessage.toLowerCase();
-
   if (lowerMessage.includes('sholat') || lowerMessage.includes('salat')) {
-    return `Alhamdulillah, pertanyaan yang bagus tentang sholat. 🙏\n\nSholat adalah tiang agama dan waktu khusus untuk berkomunikasi dengan Allah SWT. Beberapa tips untuk meningkatkan kualitas sholat:\n\n1. Pastikan wudhu dengan sempurna\n2. Tenangkan hati sebelum memulai\n3. Pahami makna bacaan\n4. Fokus pada setiap gerakan\n5. Hindari hal yang mengganggu konsentrasi\n\nSemoga sholat Anda semakin khusyuk. 💚`;
+    return `Alhamdulillah, pertanyaan yang bagus tentang sholat. 🙏\n\nSholat adalah tiang agama. Tips untuk meningkatkan kualitas sholat:\n1. Sempurnakan wudhu\n2. Pahami makna bacaan\n3. Fokus pada gerakan (tuma'ninah)\n4. Hindari gangguan saat sholat\n\nSemoga sholat Anda semakin khusyuk. 💚`;
   }
-
   if (lowerMessage.includes('puasa') || lowerMessage.includes('sahur')) {
-    return `Ma syaa Allah, semangat untuk berpuasa! 🌙\n\nPuasa adalah bentuk pengendalian diri dan ibadah yang mulia. Jika terlewat sahur:\n\n1. Tetap niatkan puasa dari hati\n2. Puasa tetap sah meski tanpa sahur\n3. Jaga dari hal yang membatalkan puasa\n4. Perbanyak dzikir dan doa\n\nAllah mengetahui niat dan usaha Anda. Tetap semangat! 💪`;
+    return `Ma syaa Allah, semangat puasanya! 🌙\n\nJika terlewat sahur:\n1. Niatkan puasa dari hati\n2. Puasa tetap sah tanpa sahur\n3. Jaga stamina dan hindari aktivitas berat berlebih\n\nAllah menilai usaha dan niat Anda. 💪`;
   }
-
-  if (lowerMessage.includes('malas') || lowerMessage.includes('motivasi') || lowerMessage.includes('semangat')) {
-    return `Saya memahami perasaan Anda. Kita semua mengalami masa-masa seperti ini. 💙\n\nYang penting adalah Anda tetap berusaha:\n\n1. Mulai dari yang kecil dan konsisten\n2. Ingat tujuan beribadah kepada Allah\n3. Cari teman yang saling mengingatkan\n4. Berdoa memohon kekuatan dari Allah\n5. Jangan terlalu keras pada diri sendiri\n\nAllah melihat usaha Anda, bukan hanya hasilnya. Keep going! 🌟`;
+  if (lowerMessage.includes('malas') || lowerMessage.includes('motivasi')) {
+    return `Wajar merasa lelah, tapi jangan menyerah. 💙\n\nTips membangkitkan semangat:\n1. Mulai dari ibadah wajib yang ringan\n2. Berdoa minta kekuatan ("Allahumma inni a'udzubika minal kasal")\n3. Ingat pahala yang Allah janjikan\n\nKeep going! 🌟`;
   }
-
-  if (lowerMessage.includes('tilawah') || lowerMessage.includes('quran') || lowerMessage.includes('alquran')) {
-    return `Subhanallah, niat untuk membaca Al-Qur'an sangat mulia! 📖\n\nBeberapa tips untuk konsisten tilawah:\n\n1. Tentukan waktu khusus setiap hari\n2. Mulai dengan target kecil (1-2 halaman)\n3. Pahami terjemahan untuk lebih bermakna\n4. Dengarkan murotal saat beraktivitas\n5. Ajak keluarga untuk tilawah bersama\n\nSetiap huruf yang dibaca bernilai pahala. Barakallahu fiik! ✨`;
-  }
-
-  if (lowerMessage.includes('doa') || lowerMessage.includes('dua')) {
-    return `Alhamdulillah, doa adalah senjata mukmin. 🤲\n\nAllah SWT berfirman: "Berdoalah kepada-Ku, niscaya akan Aku kabulkan" (QS. Al-Mu'min: 60)\n\nTips berdoa:\n1. Pilih waktu mustajab (sepertiga malam, setelah adzan, dll)\n2. Awali dengan memuji Allah dan sholawat\n3. Berdoa dengan tulus dan khusyuk\n4. Yakin Allah akan mengabulkan\n5. Iringi dengan usaha dan ikhtiar\n\nAllah mendengar setiap doa Anda. 💚`;
-  }
-
-  // Default response
-  return `Terima kasih atas pertanyaan Anda. 🙏\n\nSaya di sini untuk mendengarkan dan membantu. Setiap perjalanan spiritual itu unik, dan yang terpenting adalah niat tulus kita kepada Allah SWT.\n\nJika Anda memiliki pertanyaan lebih spesifik tentang ibadah atau butuh motivasi spiritual, silakan tanyakan. Saya siap membantu! 💙\n\nIngat, Allah Maha Pengasih dan Maha Penyayang. Teruslah berusaha dan jangan menyerah.`;
+  return `Terima kasih atas pertanyaannya. 🙏\n\nSetiap perjalanan spiritual itu unik. Lakukan yang terbaik semampu Anda, dan Allah Maha Mengetahui isi hati hamba-Nya.\n\nAda hal lain yang ingin didiskusikan?`;
 }

@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Camera, X, Check } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Camera, X, Check, Loader2, RefreshCw, FlipHorizontal, Zap } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -10,176 +10,178 @@ interface CameraCaptureProps {
 
 export function CameraCapture({ onCapture, onCancel }: CameraCaptureProps) {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isActive, setIsActive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [now, setNow] = useState(new Date());
+
+  // Update jam setiap detik
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Matikan kamera saat komponen ditutup
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
 
   const startCamera = async () => {
+    setLoading(true);
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false,
+      const s = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: { ideal: 1080 }, height: { ideal: 1440 } }, 
+        audio: false 
       });
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        setStream(mediaStream);
-        setIsActive(true);
-      }
+      setStream(s);
+      setIsActive(true);
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          videoRef.current.play().catch(e => console.error("Play error:", e));
+        }
+      }, 150);
+
     } catch (err) {
-      console.error('Error accessing camera:', err);
-      alert('Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan.');
+      console.error("Gagal kamera:", err);
+      alert("Pastikan izin kamera diberikan.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-      setIsActive(false);
-    }
-  };
-
-  const capturePhoto = () => {
+  const takePhoto = () => {
     if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
+      const v = videoRef.current;
+      const c = canvasRef.current;
       
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // Menggunakan resolusi video asli
+      c.width = v.videoWidth;
+      c.height = v.videoHeight;
+      const ctx = c.getContext('2d');
       
-      const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(video, 0, 0);
-        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        setCapturedImage(imageDataUrl);
-        stopCamera();
+        // 1. Gambar Video (Efek Mirror)
+        ctx.translate(c.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(v, 0, 0, c.width, c.height);
+        
+        // Reset transform untuk menggambar teks (agar teks tidak terbalik)
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // 2. Tambahkan Gradasi Hitam di bawah (agar teks putih terbaca jelas)
+        const gradient = ctx.createLinearGradient(0, c.height * 0.7, 0, c.height);
+        gradient.addColorStop(0, 'transparent');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.5)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, c.height * 0.7, c.width, c.height * 0.3);
+
+        // 3. Setup Font
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center";
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 10;
+
+        // --- Gambar JAM (Besar) ---
+        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+        ctx.font = `bold ${Math.floor(c.height * 0.08)}px sans-serif`; // Font size proporsional
+        ctx.fillText(timeStr, c.width / 2, c.height * 0.88);
+
+        // --- Gambar TANGGAL (Kecil) ---
+        const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' }).toUpperCase();
+        ctx.font = `bold ${Math.floor(c.height * 0.02)}px sans-serif`; // Font size proporsional
+        ctx.fillText(dateStr, c.width / 2, c.height * 0.93);
+
+        // Simpan hasil
+        setCapturedImage(c.toDataURL('image/jpeg', 0.85));
+        
+        // Stop kamera
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        setIsActive(false);
       }
     }
-  };
-
-  const handleConfirm = () => {
-    if (capturedImage) {
-      onCapture(capturedImage);
-      setCapturedImage(null);
-    }
-  };
-
-  const handleRetake = () => {
-    setCapturedImage(null);
-    startCamera();
-  };
-
-  const handleCancel = () => {
-    stopCamera();
-    setCapturedImage(null);
-    if (onCancel) onCancel();
   };
 
   return (
-    <div className="relative w-full">
+    <div className="fixed inset-0 z-[999] bg-black/95 flex flex-col items-center justify-between py-10 px-4">
       <AnimatePresence mode="wait">
-        {!isActive && !capturedImage && (
-          <motion.div
-            key="start"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-accent/30 border border-border"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center">
-              <Camera className="w-8 h-8 text-primary" />
+        {!isActive && !capturedImage ? (
+          <motion.div key="1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center h-full gap-6 text-center">
+            <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary/20">
+              <Camera className="w-12 h-12 text-primary" />
             </div>
-            <div className="text-center">
-              <h3 className="font-semibold mb-1">Ambil Foto Sahur</h3>
-              <p className="text-sm text-muted-foreground">
-                Dokumentasikan momen sahur Anda
-              </p>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-white">Foto Sahur</h2>
+              <p className="text-white/50 text-sm">Abadikan momen berkah sahurmu</p>
             </div>
-            <Button onClick={startCamera} className="rounded-2xl">
-              <Camera className="w-4 h-4 mr-2" />
+            <Button onClick={startCamera} size="lg" className="rounded-2xl px-12 h-14 font-bold text-lg shadow-xl">
+              {loading ? <Loader2 className="animate-spin mr-2" /> : <Camera className="mr-2" />}
               Buka Kamera
             </Button>
+            <button onClick={onCancel} className="text-white/30 hover:text-white transition-colors">Batal</button>
           </motion.div>
-        )}
+        ) : isActive ? (
+          <motion.div key="2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-sm flex flex-col gap-6">
+            <div className="flex justify-between items-center text-white px-2">
+              <button onClick={onCancel} className="p-2 bg-white/10 rounded-full hover:bg-white/20"><X /></button>
+              <span className="text-[10px] font-black tracking-[0.3em] uppercase opacity-40">Live Viewfinder</span>
+              <div className="p-2 bg-white/10 rounded-full"><Zap size={20} className="text-yellow-400 fill-yellow-400" /></div>
+            </div>
 
-        {isActive && !capturedImage && (
-          <motion.div
-            key="camera"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="relative rounded-3xl overflow-hidden bg-black"
-          >
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full h-64 object-cover"
-            />
-            <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleCancel}
-                className="rounded-full w-12 h-12 bg-white/90 hover:bg-white"
+            <div className="relative aspect-[3/4] rounded-[3rem] overflow-hidden border-4 border-white/10 shadow-2xl bg-neutral-900">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover scale-x-[-1]"
+              />
+              <div className="absolute inset-x-0 bottom-10 flex flex-col items-center pointer-events-none drop-shadow-md">
+                <div className="text-white text-6xl font-bold tracking-tight">
+                  {now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+                </div>
+                <div className="text-white/70 text-[10px] font-black uppercase tracking-[0.2em] mt-1">
+                  {now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center mt-4">
+              <button
+                onClick={takePhoto}
+                className="w-20 h-20 rounded-full bg-white ring-8 ring-white/10 active:scale-90 transition-transform shadow-2xl flex items-center justify-center"
               >
-                <X className="w-5 h-5" />
-              </Button>
-              <Button
-                size="icon"
-                onClick={capturePhoto}
-                className="rounded-full w-16 h-16 bg-primary hover:bg-primary-hover shadow-lg"
-              >
-                <Camera className="w-6 h-6" />
-              </Button>
+                <div className="w-16 h-16 rounded-full border-2 border-black/5" />
+              </button>
             </div>
           </motion.div>
-        )}
-
-        {capturedImage && (
-          <motion.div
-            key="preview"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative rounded-3xl overflow-hidden"
-          >
-            <img
-              src={capturedImage}
-              alt="Captured"
-              className="w-full h-64 object-cover"
-            />
-            <div className="absolute top-4 right-4">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="w-10 h-10 rounded-full bg-success flex items-center justify-center shadow-lg"
-              >
-                <Check className="w-5 h-5 text-white" />
-              </motion.div>
-            </div>
-            <div className="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-4">
-              <Button
-                variant="outline"
-                onClick={handleRetake}
-                className="rounded-2xl bg-white/90 hover:bg-white"
-              >
-                Foto Ulang
-              </Button>
-              <Button
-                onClick={handleConfirm}
-                className="rounded-2xl"
-              >
-                <Check className="w-4 h-4 mr-2" />
-                Simpan
-              </Button>
-            </div>
+        ) : (
+          <motion.div key="3" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-sm flex flex-col gap-6">
+             <div className="relative aspect-[3/4] rounded-[3rem] overflow-hidden border-4 border-white shadow-2xl">
+                <img src={capturedImage!} className="w-full h-full object-cover" alt="Preview sahur" />
+                <div className="absolute top-6 left-6 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-bold text-white uppercase tracking-widest">
+                  Pratinjau Foto
+                </div>
+             </div>
+             <div className="flex gap-4">
+                <Button variant="outline" onClick={() => { setCapturedImage(null); startCamera(); }} className="flex-1 h-14 rounded-2xl bg-white/5 border-white/20 text-white hover:bg-white/10">
+                  <RefreshCw className="mr-2 w-4 h-4" /> Ulangi
+                </Button>
+                <Button onClick={() => onCapture(capturedImage!)} className="flex-1 h-14 rounded-2xl font-bold text-lg shadow-lg">
+                  <Check className="mr-2 w-5 h-5" /> Simpan
+                </Button>
+             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
       <canvas ref={canvasRef} className="hidden" />
     </div>
   );

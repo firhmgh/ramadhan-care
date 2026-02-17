@@ -26,6 +26,7 @@ import {
   BookOpen,
   TrendingUp,
   Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../components/ui/utils';
@@ -160,13 +161,21 @@ export default function DashboardPage() {
 
   const saveSahur = (photoUrl: string) => {
     if (puasaRecord) {
-      updatePuasaRecord(puasaRecord.id, { sahurTime, sahurPhoto: photoUrl });
+      updatePuasaRecord(puasaRecord.id, { 
+        sahurTime: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':'), 
+        sahurPhoto: photoUrl 
+      });
     } else {
-      addPuasaRecord({ date: today, completed: true, sahurTime, sahurPhoto: photoUrl });
+      addPuasaRecord({ 
+        date: today, 
+        completed: true, 
+        sahurTime: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':'), 
+        sahurPhoto: photoUrl 
+      });
     }
     setPuasaRecord(getTodayPuasa());
     setShowCamera(false);
-    toast.success('Foto sahur tersimpan!');
+    toast.success('Foto sahur estetik berhasil disimpan! 📸');
   };
 
   const saveTilawah = () => {
@@ -423,50 +432,75 @@ export default function DashboardPage() {
         </div>
 
         {puasaRecord?.completed && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="sahurTime">Waktu Sahur</Label>
-              <Input
-                id="sahurTime"
-                type="time"
-                value={sahurTime}
-                onChange={(e) => setSahurTime(e.target.value)}
-                className="rounded-2xl"
-              />
+  <div className="space-y-4">
+    {/* Input Waktu Sahur */}
+    <div className="space-y-2">
+      <Label htmlFor="sahurTime" className="text-sm font-medium ml-1">
+        Waktu Sahur
+      </Label>
+      <Input
+        id="sahurTime"
+        type="time"
+        value={sahurTime}
+        onChange={(e) => setSahurTime(e.target.value)}
+        className="rounded-2xl h-12 bg-accent/20 border-none focus-visible:ring-primary/30"
+      />
+    </div>
+
+    {/* Tombol Ambil Foto (Hanya muncul jika belum ada foto dan kamera tidak aktif) */}
+    {!showCamera && !puasaRecord.sahurPhoto && (
+      <Button
+        onClick={() => setShowCamera(true)}
+        variant="outline"
+        className="w-full h-14 rounded-2xl border-dashed border-2 hover:bg-primary/5 hover:border-primary/50 transition-all"
+      >
+        <Camera className="w-5 h-5 mr-2 text-primary" />
+        Ambil Foto Sahur
+      </Button>
+    )}
+
+    {/* Komponen Kamera */}
+    {showCamera && (
+      <div className="mt-2">
+        <CameraCapture
+          onCapture={saveSahur}
+          onCancel={() => setShowCamera(false)}
+        />
+      </div>
+    )}
+
+    {/* Hasil Foto (UI Friendly & Responsif) */}
+    {puasaRecord.sahurPhoto && !showCamera && (
+      <div className="relative group mx-auto max-w-[280px] mt-4 shadow-2xl rounded-[2rem] overflow-hidden border-4 border-white dark:border-slate-800 transition-transform hover:scale-[1.02]">
+        <img
+          src={puasaRecord.sahurPhoto}
+          alt="Sahur"
+          className="w-full aspect-[3/4] object-cover"
+        />
+        
+        {/* Overlay Hover untuk Ganti Foto */}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={() => setShowCamera(true)}
+            className="rounded-xl shadow-xl font-bold bg-white text-black hover:bg-white/90"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Ganti Foto
+          </Button>
+        </div>
+
+        {/* Badge Waktu di Pojok Foto sebagai info tambahan */}
+        <div className="absolute bottom-4 left-4 right-4 text-center">
+            <div className="inline-block px-3 py-1 rounded-full bg-black/50 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest border border-white/20">
+              Tercatat: {sahurTime}
             </div>
-
-            {!showCamera && !puasaRecord.sahurPhoto && (
-              <Button
-                onClick={() => setShowCamera(true)}
-                variant="outline"
-                className="w-full rounded-2xl"
-              >
-                <Camera className="w-4 h-4 mr-2" />
-                Ambil Foto Sahur
-              </Button>
-            )}
-
-            {showCamera && (
-              <CameraCapture
-                onCapture={saveSahur}
-                onCancel={() => setShowCamera(false)}
-              />
-            )}
-
-            {puasaRecord.sahurPhoto && (
-              <div className="relative rounded-2xl overflow-hidden">
-                <img
-                  src={puasaRecord.sahurPhoto}
-                  alt="Sahur"
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute top-2 right-2 px-3 py-1 rounded-full bg-success text-white text-xs font-semibold">
-                  {sahurTime}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        </div>
+      </div>
+    )}
+  </div>
+)}
       </motion.div>
 
       {/* Tilawah Section */}
