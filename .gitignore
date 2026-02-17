@@ -1,36 +1,45 @@
-# Dependencies (Wajib di-ignore karena ukurannya besar)
+# Vite / React / TypeScript defaults
 node_modules/
-
-# Production build output (Hasil build Vite)
 dist/
 dist-ssr/
+.vite/
+*.local
 
-# Local env files (Untuk keamanan, jangan upload key rahasia)
+# Environment variables 
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
 
-# Log files
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
 
-# Editor directories and files (Settingan text editor lokal)
-.idea
-.DS_Store
+# Editor / OS files
+.idea/
+.vscode/*
+!.vscode/extensions.json
 *.suo
-*.ntvs
+*.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.vscode/*
-!.vscode/extensions.json
+.DS_Store
+Thumbs.db
 
-# Testing coverage
+# Testing / coverage
 coverage/
+.nyc_output/
 
-# FILE KHUSUS YANG INGIN DIABAIKAN
+# Temporary / personal files
 IMPLEMENTATION_SUMMARY.md
-
 client_secret_*.json
+*.backup
+*.tmp
+
+supabase/.branches/
+supabase/functions/*/node_modules/
