@@ -49,8 +49,8 @@ export default function ProfilePage() {
   const sahurPhotosMap = useMemo(() => {
     const map: Record<string, string> = {};
     puasaRecords.forEach(record => {
-      if (record.sahurImage) { 
-        map[record.date] = record.sahurImage;
+      if (record.sahurPhoto) { 
+        map[record.date] = record.sahurPhoto;
       }
     });
     return map;

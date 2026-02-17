@@ -163,7 +163,7 @@ export default function DashboardPage() {
 
   const handlePuasaYa = () => {
     if (puasaRecord) {
-      updatePuasaRecord(puasaRecord.id, { completed: true, notes: undefined });
+      updatePuasaRecord(puasaRecord.id, { completed: true, alasan: undefined });
     } else {
       addPuasaRecord({ date: today, completed: true });
     }
@@ -181,9 +181,9 @@ export default function DashboardPage() {
       return;
     }
     if (puasaRecord) {
-      updatePuasaRecord(puasaRecord.id, { completed: false, notes: selectedReason });
+      updatePuasaRecord(puasaRecord.id, { completed: false, alasan: selectedReason });
     } else {
-      addPuasaRecord({ date: today, completed: false, notes: selectedReason });
+      addPuasaRecord({ date: today, completed: false, alasan: selectedReason });
     }
     setPuasaRecord(getTodayPuasa());
     setShowReasonModal(false);

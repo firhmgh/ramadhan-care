@@ -32,14 +32,10 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    
     try {
       await loginWithGoogle();
-      toast.success('Login dengan Google berhasil!');
-      navigate('/auth/setup');
-    } catch (error) {
-      toast.error('Login dengan Google gagal. Silakan coba lagi.');
-    } finally {
+    } catch (error: any) {
+      toast.error('Gagal menghubungkan ke Google');
       setIsLoading(false);
     }
   };
