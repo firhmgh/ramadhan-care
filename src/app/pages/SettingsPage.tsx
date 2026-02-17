@@ -1,4 +1,5 @@
 import { useStore } from '../store/useStore';
+import { type Mazhab } from '../store/useStore';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -32,7 +33,7 @@ export default function SettingsPage() {
   const [name, setName] = useState(user?.name || '');
   const [age, setAge] = useState(user?.age?.toString() || '');
   const [gender, setGender] = useState(user?.gender || 'Laki-Laki');
-  const [mazhab, setMazhab] = useState(user?.mazhab || 'Syafi\'i');
+  const [mazhab, setMazhab] = useState<Mazhab | undefined>(user?.mazhab);
 
   // State untuk Pengingat
   const [sholatReminder, setSholatReminder] = useState(reminderSettings.sholatReminder);
@@ -146,10 +147,10 @@ export default function SettingsPage() {
 
             <div className="space-y-3">
               <Label className="text-sm font-semibold flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-primary" /> Mazhab / Afiliasi
+                <BookOpen className="w-4 h-4 text-primary" /> Mazhab 
               </Label>
               <div className="grid grid-cols-2 gap-2">
-                {['NU', 'Muhammadiyah', 'Syafi\'i', 'Umum'].map((m) => (
+                {(['NU', 'Muhammadiyah']as const).map((m) => (
                   <Button
                     key={m}
                     size="sm"

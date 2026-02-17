@@ -192,7 +192,7 @@ export const useStore = create<AppState>()(
           name: email.split('@')[0],
           isProfileComplete: true,
           createdAt: new Date().toISOString(),
-          mazhab: 'Umum'
+          mazhab: 'NU'
         };
         set({ isAuthenticated: true, user });
       },
