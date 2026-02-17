@@ -37,6 +37,8 @@ coverage/
 
 # Temporary / personal files
 IMPLEMENTATION_SUMMARY.md
+README.md
+
 client_secret_*.json
 *.backup
 *.tmp

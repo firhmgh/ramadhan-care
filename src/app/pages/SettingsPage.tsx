@@ -3,14 +3,38 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
-import { Settings as SettingsIcon, Bell, Mail, Clock, Save, ShieldCheck, Info } from 'lucide-react';
+import { 
+  Settings as SettingsIcon, 
+  Bell, 
+  Mail, 
+  Clock, 
+  Save, 
+  ShieldCheck, 
+  Info, 
+  User as UserIcon, 
+  BookOpen 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
 export default function SettingsPage() {
-  const { reminderSettings, updateReminderSettings } = useStore();
+  // Ambil user dan fungsi update dari store
+  // Catatan: Pastikan di useStore.ts Anda memiliki fungsi setUser atau updateUser
+  const { 
+    user, 
+    setUser, 
+    reminderSettings, 
+    updateReminderSettings 
+  } = useStore();
   
+  // State untuk Profil
+  const [name, setName] = useState(user?.name || '');
+  const [age, setAge] = useState(user?.age?.toString() || '');
+  const [gender, setGender] = useState(user?.gender || 'Laki-Laki');
+  const [mazhab, setMazhab] = useState(user?.mazhab || 'Syafi\'i');
+
+  // State untuk Pengingat
   const [sholatReminder, setSholatReminder] = useState(reminderSettings.sholatReminder);
   const [sahurReminder, setSahurReminder] = useState(reminderSettings.sahurReminder);
   const [sahurTime, setSahurTime] = useState(reminderSettings.sahurTime);
@@ -20,6 +44,18 @@ export default function SettingsPage() {
   const [email, setEmail] = useState(reminderSettings.email || '');
 
   const handleSave = () => {
+    // 1. Simpan Data Profil
+    if (setUser) {
+      setUser({
+        ...user!,
+        name,
+        age: parseInt(age),
+        gender,
+        mazhab
+      });
+    }
+
+    // 2. Simpan Pengaturan Pengingat
     updateReminderSettings({
       sholatReminder,
       sahurReminder,
@@ -29,7 +65,8 @@ export default function SettingsPage() {
       emailNotification,
       email: emailNotification ? email : undefined,
     });
-    toast.success('Pengaturan berhasil disimpan!');
+
+    toast.success('Semua perubahan berhasil disimpan!');
   };
 
   return (
@@ -47,17 +84,92 @@ export default function SettingsPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Pengaturan</h1>
             <p className="text-muted-foreground">
-              Kelola notifikasi dan preferensi ibadah Anda
+              Kelola profil dan preferensi ibadah Anda
             </p>
           </div>
         </div>
       </motion.div>
 
       <div className="grid gap-6">
+        
+        {/* Profile Information Card */}
+        <motion.section
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-card rounded-[2rem] border border-border/50 shadow-sm p-6 md:p-8 space-y-6"
+        >
+          <div className="flex items-center gap-3 border-b border-border/50 pb-4">
+            <UserIcon className="w-5 h-5 text-primary" />
+            <h3 className="font-bold text-lg">Informasi Profil</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-semibold">Nama Lengkap</Label>
+              <Input 
+                id="name" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Masukkan nama Anda"
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="age" className="text-sm font-semibold">Umur</Label>
+              <Input 
+                id="age" 
+                type="number"
+                value={age} 
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="Contoh: 21"
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Jenis Kelamin</Label>
+              <div className="flex gap-2">
+                {['Laki-Laki', 'Perempuan'].map((g) => (
+                  <Button
+                    key={g}
+                    variant={gender === g ? 'default' : 'outline'}
+                    onClick={() => setGender(g as any)}
+                    className="flex-1 rounded-xl h-11"
+                  >
+                    {g}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-primary" /> Mazhab / Afiliasi
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {['NU', 'Muhammadiyah', 'Syafi\'i', 'Umum'].map((m) => (
+                  <Button
+                    key={m}
+                    size="sm"
+                    variant={mazhab === m ? 'secondary' : 'outline'}
+                    onClick={() => setMazhab(m)}
+                    className={`rounded-xl h-10 text-xs font-bold ${mazhab === m ? 'bg-secondary text-secondary-foreground border-secondary' : ''}`}
+                  >
+                    {m}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
         {/* Reminder Settings Card */}
         <motion.section
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
           className="bg-card rounded-[2rem] border border-border/50 shadow-sm p-6 md:p-8 space-y-8"
         >
           <div className="flex items-center gap-3 border-b border-border/50 pb-4">
@@ -166,7 +278,7 @@ export default function SettingsPage() {
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.2 }}
           className="bg-card rounded-[2rem] border border-border/50 shadow-sm p-6 md:p-8 space-y-6"
         >
           <div className="flex items-center gap-3 border-b border-border/50 pb-4">

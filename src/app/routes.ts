@@ -5,10 +5,9 @@ import LoginPage from "./pages/LoginPage";
 import ProfileSetupPage from "./pages/ProfileSetupPage";
 import DashboardPage from "./pages/DashboardPage";
 import CalendarPage from "./pages/CalendarPage";
-import ZakatPage from "./pages/ZakatPage";
-import SedekahPage from "./pages/SedekahPage";
-import JournalPage from "./pages/JournalPage";
-import ChatbotPage from "./pages/ChatbotPage";
+import ZakatSedekahPage from "./pages/FilantropiPage";
+import AgendaPage from "./pages/AgendaPage";
+import ReflectionPage from "./pages/ReflectionPage";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -20,10 +19,9 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: DashboardPage },
       { path: "calendar", Component: CalendarPage },
-      { path: "zakat", Component: ZakatPage },
-      { path: "sedekah", Component: SedekahPage },
-      { path: "journal", Component: JournalPage },
-      { path: "chatbot", Component: ChatbotPage },
+      { path: "agenda", Component: AgendaPage },
+      { path: "filantropi", Component: ZakatSedekahPage  },
+      { path: "reflection", Component: ReflectionPage },
       { path: "profile", Component: ProfilePage },
       { path: "settings", Component: SettingsPage },
       { path: "*", Component: NotFoundPage },

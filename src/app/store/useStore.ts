@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// Types
+// --- Types ---
 export type Gender = 'Laki-Laki' | 'Perempuan';
-export type Mazhab = 'Muhammadiyah' | 'Nu' | 'Syafi\'i' | 'Hanbali';
+export type Mazhab = 'NU' | 'Muhammadiyah';
 
 export interface UserProfile {
   id: string;
@@ -14,6 +14,7 @@ export interface UserProfile {
   age?: number;
   city?: string;
   isProfileComplete: boolean;
+  createdAt?: string; // Untuk informasi "Bergabung sejak"
 }
 
 export type SholatWajib = 'subuh' | 'zuhur' | 'asar' | 'magrib' | 'isya' | 'jumat';
@@ -88,6 +89,17 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+export interface AgendaEntry {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  category: 'ibadah' | 'kajian' | 'sosial';
+  location?: string;
+  reminder: boolean;
+  notes?: string;
+}
+
 export interface ReminderSettings {
   sholatReminder: boolean;
   sholatTimes: string[];
@@ -100,12 +112,13 @@ export interface ReminderSettings {
 }
 
 interface AppState {
-  // Auth
+  // Auth & Profile
   isAuthenticated: boolean;
   user: UserProfile | null;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => void;
+  setUser: (user: UserProfile) => void; // Fungsi tambahan untuk update data user menyeluruh
   updateProfile: (profile: Partial<UserProfile>) => void;
   
   // Sholat
@@ -145,12 +158,18 @@ interface AppState {
   chatHistory: ChatMessage[];
   addChatMessage: (message: Omit<ChatMessage, 'id'>) => void;
   clearChatHistory: () => void;
+
+  // Agenda
+  agendaEntries: AgendaEntry[];
+  addAgendaEntry: (entry: Omit<AgendaEntry, 'id'>) => void;
+  deleteAgendaEntry: (id: string) => void;
   
   // Reminders
   reminderSettings: ReminderSettings;
   updateReminderSettings: (settings: Partial<ReminderSettings>) => void;
 }
 
+// --- Helpers ---
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const getTodayDateString = () => {
@@ -161,36 +180,41 @@ const getTodayDateString = () => {
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
-      // Initial Auth State
+      // --- Auth & Profile ---
       isAuthenticated: false,
       user: null,
       
       login: async (email: string, password: string) => {
-        // Mock login - in real app, this would call Supabase auth
         await new Promise(resolve => setTimeout(resolve, 500));
         const user: UserProfile = {
           id: generateId(),
           email,
           name: email.split('@')[0],
-          isProfileComplete: true, // Assume complete for email login
+          isProfileComplete: true,
+          createdAt: new Date().toISOString(),
+          mazhab: 'Umum'
         };
         set({ isAuthenticated: true, user });
       },
       
       loginWithGoogle: async () => {
-        // Mock Google login
         await new Promise(resolve => setTimeout(resolve, 500));
         const user: UserProfile = {
           id: generateId(),
           email: 'user@gmail.com',
           name: 'User Google',
-          isProfileComplete: false, // Need to complete profile
+          isProfileComplete: false,
+          createdAt: new Date().toISOString()
         };
         set({ isAuthenticated: true, user });
       },
       
       logout: () => {
         set({ isAuthenticated: false, user: null });
+      },
+
+      setUser: (user: UserProfile) => {
+        set({ user });
       },
       
       updateProfile: (profile: Partial<UserProfile>) => {
@@ -199,7 +223,7 @@ export const useStore = create<AppState>()(
         }));
       },
       
-      // Sholat
+      // --- Sholat ---
       sholatRecords: [],
       
       addSholatRecord: (record) => {
@@ -221,7 +245,7 @@ export const useStore = create<AppState>()(
         return get().sholatRecords.filter(record => record.date === today);
       },
       
-      // Puasa
+      // --- Puasa ---
       puasaRecords: [],
       
       addPuasaRecord: (record) => {
@@ -244,7 +268,7 @@ export const useStore = create<AppState>()(
         return records.length > 0 ? records[0] : null;
       },
       
-      // Tilawah
+      // --- Tilawah ---
       tilawahRecords: [],
       
       addTilawahRecord: (record) => {
@@ -258,7 +282,7 @@ export const useStore = create<AppState>()(
         return get().tilawahRecords.filter(record => record.date === today);
       },
       
-      // Zakat
+      // --- Zakat ---
       zakatRecords: [],
       
       addZakatRecord: (record) => {
@@ -271,7 +295,7 @@ export const useStore = create<AppState>()(
         return get().zakatRecords.reduce((total, record) => total + record.totalNominal, 0);
       },
       
-      // Sedekah
+      // --- Sedekah ---
       sedekahRecords: [],
       
       addSedekahRecord: (record) => {
@@ -291,20 +315,18 @@ export const useStore = create<AppState>()(
         });
       },
       
-      // Journal
+      // --- Journal ---
       journalEntries: [],
       
       addJournalEntry: (entry) => {
         const existing = get().journalEntries.find(e => e.date === entry.date);
         if (existing) {
-          // Update existing
           set(state => ({
             journalEntries: state.journalEntries.map(e =>
               e.date === entry.date ? { ...e, ...entry } : e
             ),
           }));
         } else {
-          // Add new
           set(state => ({
             journalEntries: [...state.journalEntries, { ...entry, id: generateId() }],
           }));
@@ -315,7 +337,7 @@ export const useStore = create<AppState>()(
         return get().journalEntries.find(entry => entry.date === date) || null;
       },
       
-      // Chatbot
+      // --- Chatbot ---
       chatHistory: [],
       
       addChatMessage: (message) => {
@@ -327,8 +349,23 @@ export const useStore = create<AppState>()(
       clearChatHistory: () => {
         set({ chatHistory: [] });
       },
+
+      // --- Agenda ---
+      agendaEntries: [],
+
+      addAgendaEntry: (entry) => {
+        set(state => ({
+          agendaEntries: [...state.agendaEntries, { ...entry, id: generateId() }]
+        }));
+      },
+
+      deleteAgendaEntry: (id) => {
+        set(state => ({
+          agendaEntries: state.agendaEntries.filter(e => e.id !== id)
+        }));
+      },
       
-      // Reminders
+      // --- Reminders ---
       reminderSettings: {
         sholatReminder: true,
         sholatTimes: ['05:00', '12:00', '15:30', '18:00', '19:30'],

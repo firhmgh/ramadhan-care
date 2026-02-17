@@ -1,82 +1,104 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
-
 import { cn } from "./utils";
-import { buttonVariants } from "./button";
+import { useStore } from "../../store/useStore";
 
-function Calendar({
-  className,
-  classNames,
-  showOutsideDays = true,
-  ...props
-}: React.ComponentProps<typeof DayPicker>) {
+const DAY_LABELS = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+
+interface RamadhanDayProps {
+  hijriDay: number;
+  gregorianDate: string;
+  isToday?: boolean;
+}
+
+const RamadhanDay = ({ hijriDay, gregorianDate, isToday }: RamadhanDayProps) => {
+  const [day, month] = gregorianDate.split(" ");
+
   return (
-    <DayPicker
-      showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
-      classNames={{
-        // Mengubah months dan month agar full width
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 w-full",
-        month: "space-y-4 w-full",
-        
-        caption: "flex justify-center pt-1 relative items-center w-full",
-        caption_label: "text-sm font-medium",
-        nav: "flex items-center gap-1",
-        nav_button: cn(
-          buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
-        ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        
-        // Memastikan tabel mengambil lebar penuh
-        table: "w-full border-collapse space-y-1",
-        
-        // Menggunakan Flexbox + Justify Between agar header dan baris tanggal menyebar rata
-        head_row: "flex w-full justify-between",
-        head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-        
-        row: "flex w-full mt-2 justify-between",
-        
-        cell: cn(
-          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-range-end)]:rounded-r-md",
-          props.mode === "range"
-            ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
-            : "[&:has([aria-selected])]:rounded-md"
-        ),
-        
-        // Ubah size-8 (32px) menjadi h-9 w-9 (36px) agar touch target lebih enak di mobile
-        day: cn(
-          buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
-        ),
-        
-        day_range_start: "day-range-start aria-selected:bg-primary aria-selected:text-primary-foreground",
-        day_range_end: "day-range-end aria-selected:bg-primary aria-selected:text-primary-foreground",
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "day-outside text-muted-foreground aria-selected:text-muted-foreground",
-        day_disabled: "text-muted-foreground opacity-50",
-        day_range_middle:
-          "aria-selected:bg-accent aria-selected:text-accent-foreground",
-        day_hidden: "invisible",
-        ...classNames,
-      }}
-      components={{
-        IconLeft: ({ className, ...props }) => (
-          <ChevronLeft className={cn("h-4 w-4", className)} {...props} />
-        ),
-        IconRight: ({ className, ...props }) => (
-          <ChevronRight className={cn("h-4 w-4", className)} {...props} />
-        ),
-      }}
-      {...props}
-    />
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center py-3 px-1 border transition-all duration-300",
+        "w-full rounded-full aspect-[1/2.2] min-h-[90px]",
+        "bg-white border-slate-100 shadow-sm hover:shadow-md hover:border-primary/20",
+        isToday ? "ring-2 ring-primary border-primary bg-primary/5" : "text-slate-600"
+      )}
+    >
+      <span className={cn(
+        "text-lg sm:text-xl font-black mb-1 leading-none",
+        isToday ? "text-primary" : "text-slate-900"
+      )}>
+        {hijriDay}
+      </span>
+      
+      <div className="flex flex-col items-center leading-none text-slate-400">
+        <span className="text-[10px] font-bold">{day}</span>
+        <span className="text-[8px] font-medium uppercase tracking-tighter">{month}</span>
+      </div>
+    </div>
+  );
+};
+
+function Calendar({ className }: { className?: string }) {
+  const { user } = useStore();
+  const mazhabLabel = user?.mazhab || 'Muhammadiyah';
+  const isNU = mazhabLabel.toLowerCase() === 'nu';
+
+  const { ramadhanDates, startOffset } = React.useMemo(() => {
+    const dates = [];
+    const startDate = new Date(2026, 1, 18); 
+    
+    if (isNU) startDate.setDate(startDate.getDate() + 1);
+
+    const jsDay = startDate.getDay();
+    const offset = jsDay === 0 ? 6 : jsDay - 1; 
+
+    for (let i = 1; i <= 30; i++) {
+      const current = new Date(startDate);
+      current.setDate(startDate.getDate() + (i - 1));
+      
+      dates.push({
+        hijri: i,
+        gregorian: `${current.getDate()} ${["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"][current.getMonth()]}`,
+        fullDate: current.toDateString()
+      });
+    }
+    return { ramadhanDates: dates, startOffset: offset };
+  }, [isNU]);
+
+  const todayStr = new Date().toDateString();
+
+  return (
+    <div className={cn("w-full bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-soft-xl border border-slate-50", className)}>
+      <div className="text-center mb-8">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
+          30 Hari Ramadhan 1447 H
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-7 gap-2 mb-4 px-1">
+        {DAY_LABELS.map((label) => (
+          <div key={label} className="text-center text-xs sm:text-sm font-semibold text-slate-400">
+            {label}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-2 sm:gap-3">
+        {Array.from({ length: startOffset }).map((_, i) => (
+          <div key={`spacer-${i}`} className="w-full aspect-[1/2.2]" />
+        ))}
+
+        {ramadhanDates.map((item) => (
+          <RamadhanDay 
+            key={item.hijri} 
+            hijriDay={item.hijri} 
+            gregorianDate={item.gregorian}
+            isToday={item.fullDate === todayStr}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
