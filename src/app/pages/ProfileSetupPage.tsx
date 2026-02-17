@@ -97,10 +97,10 @@ export default function ProfileSetupPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     type="button"
-                    onClick={() => setGender('male')}
+                    onClick={() => setGender('Laki-Laki')}
                     className={cn(
                       "flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200",
-                      gender === 'male'
+                      gender === 'Laki-Laki'
                         ? "border-primary bg-primary/10 shadow-soft-md"
                         : "border-border hover:border-primary/50"
                     )}
@@ -110,10 +110,10 @@ export default function ProfileSetupPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setGender('female')}
+                    onClick={() => setGender('Perempuan')}
                     className={cn(
                       "flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200",
-                      gender === 'female'
+                      gender === 'Perempuan'
                         ? "border-primary bg-primary/10 shadow-soft-md"
                         : "border-border hover:border-primary/50"
                     )}
@@ -149,10 +149,8 @@ export default function ProfileSetupPage() {
                     <SelectValue placeholder="Pilih mazhab Anda" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Hanafi">Hanafi</SelectItem>
-                    <SelectItem value="Maliki">Maliki</SelectItem>
-                    <SelectItem value="Syafi'i">Syafi'i</SelectItem>
-                    <SelectItem value="Hanbali">Hanbali</SelectItem>
+                    <SelectItem value="Muhammadiyah">Muhammadiyah</SelectItem>
+                    <SelectItem value="NU">NU</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">

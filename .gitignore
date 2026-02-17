@@ -32,3 +32,5 @@ coverage/
 
 # FILE KHUSUS YANG INGIN DIABAIKAN
 IMPLEMENTATION_SUMMARY.md
+
+client_secret_*.json

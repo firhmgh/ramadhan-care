@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 // Types
-export type Gender = 'male' | 'female';
-export type Mazhab = 'Hanafi' | 'Maliki' | 'Syafi\'i' | 'Hanbali';
+export type Gender = 'Laki-Laki' | 'Perempuan';
+export type Mazhab = 'Muhammadiyah' | 'Nu' | 'Syafi\'i' | 'Hanbali';
 
 export interface UserProfile {
   id: string;

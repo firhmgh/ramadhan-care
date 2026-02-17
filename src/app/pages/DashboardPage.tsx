@@ -81,7 +81,7 @@ export default function DashboardPage() {
     if (existingRecords.length === 0) {
       // Initialize wajib prayers
       sholatWajibList.forEach((sholat) => {
-        if (!sholat.maleOnly || user?.gender === 'male') {
+        if (!sholat.maleOnly || user?.gender === 'Laki-Laki') {
           addSholatRecord({
             date: today,
             type: 'wajib',
@@ -267,7 +267,7 @@ export default function DashboardPage() {
 
         <div className="space-y-3">
           {sholatWajibList.map((sholat) => {
-            if (sholat.maleOnly && user?.gender !== 'male') return null;
+            if (sholat.maleOnly && user?.gender !== 'Laki-Laki') return null;
             
             const record = sholatRecords.find(r => r.name === sholat.name);
             if (!record) return null;
@@ -311,7 +311,7 @@ export default function DashboardPage() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {user?.gender === 'female' && !isDisabled && (
+                    {user?.gender === 'Perempuan' && !isDisabled && (
                       <Button
                         variant="ghost"
                         size="sm"
