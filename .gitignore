@@ -1,0 +1,34 @@
+# Dependencies (Wajib di-ignore karena ukurannya besar)
+node_modules/
+
+# Production build output (Hasil build Vite)
+dist/
+dist-ssr/
+
+# Local env files (Untuk keamanan, jangan upload key rahasia)
+.env
+.env.local
+.env.*.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor directories and files (Settingan text editor lokal)
+.idea
+.DS_Store
+*.suo
+*.ntvs
+*.njsproj
+*.sln
+*.sw?
+.vscode/*
+!.vscode/extensions.json
+
+# Testing coverage
+coverage/
+
+# FILE KHUSUS YANG INGIN DIABAIKAN
+IMPLEMENTATION_SUMMARY.md

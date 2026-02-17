@@ -1,0 +1,412 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  
+  /* Ramadhan Care Pastel Bright Color Palette */
+  --background: #FAFCFE;
+  --foreground: #2D3748;
+  
+  /* Mint Primary */
+  --primary: #81E6D9;
+  --primary-foreground: #1A365D;
+  --primary-hover: #4FD1C5;
+  
+  /* Soft Blue Secondary */
+  --secondary: #BEE3F8;
+  --secondary-foreground: #2C5282;
+  
+  /* Lilac Accent */
+  --accent: #E9D8FD;
+  --accent-foreground: #44337A;
+  
+  /* Peach */
+  --peach: #FED7D7;
+  --peach-foreground: #742A2A;
+  
+  /* Light Gold */
+  --gold: #FAF089;
+  --gold-foreground: #744210;
+  
+  /* Success - Green */
+  --success: #9AE6B4;
+  --success-foreground: #22543D;
+  
+  /* Warning - Orange */
+  --warning: #FBD38D;
+  --warning-foreground: #7C2D12;
+  
+  /* Neutral Grays */
+  --muted: #F7FAFC;
+  --muted-foreground: #718096;
+  
+  /* Card & UI */
+  --card: #FFFFFF;
+  --card-foreground: #2D3748;
+  --card-glass: rgba(255, 255, 255, 0.7);
+  
+  --popover: #FFFFFF;
+  --popover-foreground: #2D3748;
+  
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.1);
+  --input-background: #F7FAFC;
+  --switch-background: #CBD5E0;
+  
+  --destructive: #FC8181;
+  --destructive-foreground: #742A2A;
+  
+  --ring: #81E6D9;
+  
+  /* Gradient Definitions */
+  --gradient-primary: linear-gradient(135deg, #81E6D9 0%, #4FD1C5 100%);
+  --gradient-secondary: linear-gradient(135deg, #BEE3F8 0%, #90CDF4 100%);
+  --gradient-accent: linear-gradient(135deg, #E9D8FD 0%, #D6BCFA 100%);
+  --gradient-warm: linear-gradient(135deg, #FED7D7 0%, #FBD38D 100%);
+  --gradient-spiritual: linear-gradient(135deg, #E9D8FD 0%, #BEE3F8 50%, #81E6D9 100%);
+  
+  /* Chart Colors */
+  --chart-1: #81E6D9;
+  --chart-2: #BEE3F8;
+  --chart-3: #E9D8FD;
+  --chart-4: #FED7D7;
+  --chart-5: #FAF089;
+  
+  /* Calendar Legend Colors */
+  --calendar-complete: #9AE6B4;
+  --calendar-fasting: #BEE3F8;
+  --calendar-quran: #E9D8FD;
+  --calendar-agenda: #FAF089;
+  --calendar-zakat: #FAF089;
+  --calendar-sedekah: #FED7D7;
+  --calendar-empty: #E2E8F0;
+  
+  /* Border Radius System - 2xl to 3xl */
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2rem;
+  --radius: 1.25rem;
+  
+  /* Shadow System */
+  --shadow-soft-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-soft-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-soft-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-soft-xl: 0 12px 32px rgba(0, 0, 0, 0.1);
+  
+  /* Animation Timing */
+  --timing-fast: 150ms;
+  --timing-normal: 250ms;
+  --timing-slow: 400ms;
+  
+  /* Spacing Scale (4pt grid system) */
+  --spacing-1: 0.25rem; /* 4px */
+  --spacing-2: 0.5rem;  /* 8px */
+  --spacing-3: 0.75rem; /* 12px */
+  --spacing-4: 1rem;    /* 16px */
+  --spacing-5: 1.25rem; /* 20px */
+  --spacing-6: 1.5rem;  /* 24px */
+  --spacing-8: 2rem;    /* 32px */
+  --spacing-10: 2.5rem; /* 40px */
+  --spacing-12: 3rem;   /* 48px */
+  
+  /* Typography Scale */
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 1.875rem;  /* 30px */
+  --text-4xl: 2.25rem;   /* 36px */
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* Sidebar */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #2D3748;
+  --sidebar-primary: #81E6D9;
+  --sidebar-primary-foreground: #1A365D;
+  --sidebar-accent: #F7FAFC;
+  --sidebar-accent-foreground: #2D3748;
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --sidebar-ring: #81E6D9;
+}
+
+.dark {
+  --background: #1A202C;
+  --foreground: #F7FAFC;
+  
+  --primary: #4FD1C5;
+  --primary-foreground: #F7FAFC;
+  --primary-hover: #81E6D9;
+  
+  --secondary: #4299E1;
+  --secondary-foreground: #F7FAFC;
+  
+  --accent: #B794F4;
+  --accent-foreground: #F7FAFC;
+  
+  --peach: #FC8181;
+  --peach-foreground: #F7FAFC;
+  
+  --gold: #F6E05E;
+  --gold-foreground: #1A202C;
+  
+  --success: #68D391;
+  --success-foreground: #F7FAFC;
+  
+  --warning: #F6AD55;
+  --warning-foreground: #1A202C;
+  
+  --muted: #2D3748;
+  --muted-foreground: #A0AEC0;
+  
+  --card: #2D3748;
+  --card-foreground: #F7FAFC;
+  --card-glass: rgba(45, 55, 72, 0.7);
+  
+  --popover: #2D3748;
+  --popover-foreground: #F7FAFC;
+  
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.1);
+  --input-background: #2D3748;
+  --switch-background: #4A5568;
+  
+  --destructive: #FC8181;
+  --destructive-foreground: #F7FAFC;
+  
+  --ring: #4FD1C5;
+  
+  --chart-1: #4FD1C5;
+  --chart-2: #4299E1;
+  --chart-3: #B794F4;
+  --chart-4: #FC8181;
+  --chart-5: #F6E05E;
+  
+  --sidebar: #2D3748;
+  --sidebar-foreground: #F7FAFC;
+  --sidebar-primary: #4FD1C5;
+  --sidebar-primary-foreground: #F7FAFC;
+  --sidebar-accent: #1A202C;
+  --sidebar-accent-foreground: #F7FAFC;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #4FD1C5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-glass: var(--card-glass);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-peach: var(--peach);
+  --color-peach-foreground: var(--peach-foreground);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  }
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.4;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.4;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h5 {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h6 {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input, textarea {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+  
+  /* Smooth transitions globally */
+  * {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Custom Utility Classes for Ramadhan Care */
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+  
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+  
+  .gradient-warm {
+    background: var(--gradient-warm);
+  }
+  
+  .gradient-spiritual {
+    background: var(--gradient-spiritual);
+  }
+  
+  .glassmorphism {
+    background: var(--card-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  
+  .shadow-soft-sm {
+    box-shadow: var(--shadow-soft-sm);
+  }
+  
+  .shadow-soft-md {
+    box-shadow: var(--shadow-soft-md);
+  }
+  
+  .shadow-soft-lg {
+    box-shadow: var(--shadow-soft-lg);
+  }
+  
+  .shadow-soft-xl {
+    box-shadow: var(--shadow-soft-xl);
+  }
+  
+  .animate-scale-in {
+    animation: scale-in var(--timing-normal) ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in var(--timing-normal) ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up var(--timing-normal) ease-out;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
