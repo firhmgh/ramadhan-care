@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { ProgressRing, AnimatedCounter } from '../components/ProgressIndicators';
+import { ProgressRing } from '../components/ProgressIndicators';
 import { Switch } from '../components/ui/switch';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
 import { CameraCapture } from '../components/CameraCapture';
 import {
   Accordion,
@@ -28,18 +27,19 @@ import {
   RefreshCw,
   CheckCircle2,
   XCircle,
-  Info,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../components/ui/utils';
 
+// --- DATA CONSTANTS ---
 const sholatWajibList = [
-  { name: 'subuh', label: 'Subuh', icon: Clock, time: '04:45' },
-  { name: 'zuhur', label: 'Zuhur', icon: Sun, time: '12:00' },
-  { name: 'asar', label: 'Asar', icon: Sun, time: '15:15' },
-  { name: 'magrib', label: 'Magrib', icon: Sunset, time: '18:00' },
-  { name: 'isya', label: 'Isya', icon: Moon, time: '19:15' },
-  { name: 'jumat', label: 'Jumat', icon: Star, time: '12:00', maleOnly: true },
+  { name: 'subuh', label: 'Subuh', icon: Clock },
+  { name: 'zuhur', label: 'Zuhur', icon: Sun },
+  { name: 'asar', label: 'Asar', icon: Sun },
+  { name: 'magrib', label: 'Magrib', icon: Sunset },
+  { name: 'isya', label: 'Isya', icon: Moon },
+  { name: 'jumat', label: 'Jumat', icon: Star, maleOnly: true },
 ];
 
 const sholatSunnahList = [
@@ -49,355 +49,226 @@ const sholatSunnahList = [
   { name: 'witir', label: 'Witir', defaultRakaat: 3 },
 ];
 
-const alasanOptions = [
-  'Haid',
-  'Sakit',
-  'Bepergian',
-  'Tidur/Lupa',
-  'Lainnya',
-];
+const alasanOptions = ['Haid', 'Sakit', 'Safar', 'Tidur/Lupa', 'Lainnya'];
 
 export default function DashboardPage() {
   const {
     user,
-    getTodaySholatRecords,
+    loading,
+    sholatRecords,
+    puasaRecords,
+    tilawahRecords,
+    prayerTimes, 
+    fetchPrayerTimes,
+    fetchUserData,
     addSholatRecord,
     updateSholatRecord,
-    getTodayPuasa,
+    deleteSholatRecord,
     addPuasaRecord,
     updatePuasaRecord,
-    getTodayTilawah,
     addTilawahRecord,
   } = useStore();
 
-  const [sholatRecords, setSholatRecords] = useState(getTodaySholatRecords());
   const [expandedAlasan, setExpandedAlasan] = useState<string | null>(null);
-  const [expandedSunnah, setExpandedSunnah] = useState<string[]>([]);
-
-  // Puasa & Sahur
-  const [puasaRecord, setPuasaRecord] = useState(getTodayPuasa());
   const [showReasonModal, setShowReasonModal] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
-  const [sahurTime, setSahurTime] = useState<string>('');
+  const [sahurTime, setSahurTime] = useState<string>('04:00');
   const [showCamera, setShowCamera] = useState(false);
 
-  // Tilawah
+  // Tilawah UI
   const [surah, setSurah] = useState('');
-  const [halaman, setHalaman] = useState('');
+  const [ayat, setAyat] = useState('');
+  const [juz, setJuz] = useState('');
   const [tilawahTarget] = useState(10);
 
   const today = new Date().toISOString().split('T')[0];
-  const isFriday = new Date().getDay() === 5;
+
+  const todaySholatRecords = useMemo(() => sholatRecords.filter(r => r.date === today), [sholatRecords, today]);
+  const todayPuasaRecord = useMemo(() => puasaRecords.find(r => r.date === today) || null, [puasaRecords, today]);
+  const todayTilawahRecords = useMemo(() => tilawahRecords.filter(r => r.date === today), [tilawahRecords, today]);
 
   useEffect(() => {
-    const existingRecords = getTodaySholatRecords();
-    if (existingRecords.length === 0) {
-      sholatWajibList.forEach((sholat) => {
-        if (!sholat.maleOnly || user?.gender === 'Laki-Laki') {
-          addSholatRecord({
-            date: today,
-            type: 'wajib',
-            name: sholat.name as any,
-            completed: false,
-          });
+  const interval = setInterval(() => {
+    const nowString = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
+    if (nowString !== today) {
+      window.location.reload(); 
+    }
+  }, 60000);
+  return () => clearInterval(interval);
+}, [today]);
+
+  useEffect(() => {
+    if (user?.mazhab) {
+      fetchPrayerTimes();
+    }
+  }, [user?.mazhab, fetchPrayerTimes]);
+
+  useEffect(() => {
+    if (loading || !user) return;
+    const initSholatRecords = async () => {
+      const hasWajibRecords = todaySholatRecords.some(r => r.type === 'wajib');
+      if (!hasWajibRecords) {
+        for (const sholat of sholatWajibList) {
+          if (!sholat.maleOnly || user.gender === 'Laki-Laki') {
+            await addSholatRecord({ date: today, type: 'wajib', name: sholat.name as any, completed: false });
+          }
         }
-      });
-    }
-    setSholatRecords(getTodaySholatRecords());
-  }, []);
-
-  // FUNGSI TOGGLE YANG SUDAH DIINTEGRASIKAN
-  const toggleSholat = (id: string, name: string, completed: boolean) => {
-    if (name === 'jumat' && completed) {
-      const zuhurRecord = sholatRecords.find((r) => r.name === 'zuhur');
-      if (zuhurRecord) {
-        updateSholatRecord(zuhurRecord.id, {
-          completed: false,
-          alasan: 'Auto-disabled (Jumat aktif)',
-        });
       }
-      toast.success('Sholat Jumat tercatat, Zuhur otomatis dinonaktifkan');
-    }
+    };
+    initSholatRecords();
+  }, [loading, user, today, addSholatRecord, todaySholatRecords.length]);
 
-    if (name === 'zuhur' && completed && isFriday) {
-      const jumatRecord = sholatRecords.find((r) => r.name === 'jumat');
-      if (jumatRecord?.completed) {
-        toast.error('Tidak dapat mencentang Zuhur karena Jumat sudah dicatat');
-        return;
+  // Handlers Sholat
+  const toggleSholat = async (id: string, name: string, completed: boolean) => {
+    try {
+      await updateSholatRecord(id, { completed, alasan: undefined });
+      if (completed) {
+        setExpandedAlasan(null);
+        toast.success(`Alhamdulillah, sholat ${name} tercatat!`);
       }
-    }
-
-    // Integrasi: Jika diaktifkan (completed: true), hapus alasan (alasan: undefined/null)
-    updateSholatRecord(id, { 
-      completed, 
-      alasan: completed ? undefined : undefined 
-    });
-    
-    setSholatRecords(getTodaySholatRecords());
-
-    if (completed) {
-      setExpandedAlasan(null); // Tutup panel alasan jika sedang terbuka
-      toast.success(`Alhamdulillah, sholat ${name} tercatat!`);
+    } catch (error) {
+      toast.error("Gagal update data.");
     }
   };
 
-  const setAlasan = (id: string, alasan: string) => {
-    // Jika memberikan alasan, maka status completed otomatis false
-    updateSholatRecord(id, { alasan, completed: false });
-    setSholatRecords(getTodaySholatRecords());
-    setExpandedAlasan(null);
-    toast.info(`Alasan tercatat: ${alasan}`);
-  };
-
-  const saveSunnah = (name: string, rakaat: number) => {
-    addSholatRecord({
-      date: today,
-      type: 'sunnah',
-      name: name as any,
-      completed: true,
-      rakaat,
-    });
-    setSholatRecords(getTodaySholatRecords());
-    toast.success(`Sholat ${name} ${rakaat} rakaat tercatat!`);
-  };
-
-  const handlePuasaYa = () => {
-    if (puasaRecord) {
-      updatePuasaRecord(puasaRecord.id, { completed: true, alasan: undefined });
-    } else {
-      addPuasaRecord({ date: today, completed: true });
+  const saveSunnah = async (name: string, rakaat: number) => {
+    const existing = todaySholatRecords.find(r => r.name === name && r.type === 'sunnah');
+    try {
+      if (existing) {
+        await updateSholatRecord(existing.id, { rakaat, completed: rakaat > 0 });
+        toast.success(`Data ${name} diperbarui!`);
+      } else {
+        await addSholatRecord({ date: today, type: 'sunnah', name: name as any, completed: rakaat > 0, rakaat });
+        toast.success(`Sholat ${name} tercatat!`);
+      }
+    } catch (e) {
+      toast.error("Gagal menyimpan sunnah.");
     }
-    setPuasaRecord(getTodayPuasa());
-    toast.success('Alhamdulillah, selamat berpuasa! 💪');
   };
 
-  const handlePuasaTidak = () => {
-    setShowReasonModal(true);
-  };
-
-  const handleReasonSubmit = () => {
-    if (!selectedReason) {
-      toast.error('Pilih alasan terlebih dahulu');
-      return;
-    }
-    if (puasaRecord) {
-      updatePuasaRecord(puasaRecord.id, { completed: false, alasan: selectedReason });
-    } else {
-      addPuasaRecord({ date: today, completed: false, alasan: selectedReason });
-    }
-    setPuasaRecord(getTodayPuasa());
-    setShowReasonModal(false);
-    toast.info(`Alasan dicatat: ${selectedReason}`);
-  };
-
+  // Handlers Puasa
   useEffect(() => {
-    if (puasaRecord?.sahurTime) {
-      setSahurTime(puasaRecord.sahurTime);
+    if (todayPuasaRecord?.sahurTime) setSahurTime(todayPuasaRecord.sahurTime);
+  }, [todayPuasaRecord]);
+
+  const handlePuasaYa = async () => {
+    todayPuasaRecord 
+      ? await updatePuasaRecord(todayPuasaRecord.id, { completed: true, alasan: undefined })
+      : await addPuasaRecord({ date: today, completed: true });
+    toast.success('Selamat berpuasa! 💪');
+  };
+
+  const handleReasonSubmit = async () => {
+    todayPuasaRecord
+      ? await updatePuasaRecord(todayPuasaRecord.id, { completed: false, alasan: selectedReason })
+      : await addPuasaRecord({ date: today, completed: false, alasan: selectedReason });
+    setShowReasonModal(false);
+  };
+
+  const saveSahur = async (photoUrl: string) => {
+    const timeNow = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const payload = { sahurTime: timeNow, sahurPhoto: photoUrl, completed: true };
+    
+    if (todayPuasaRecord) {
+        await updatePuasaRecord(todayPuasaRecord.id, payload);
     } else {
-      setSahurTime('04:00');
+        await addPuasaRecord({ date: today, ...payload });
     }
-  }, [puasaRecord]);
-
-  const saveSahur = (photoUrl: string) => {
-    const now = new Date();
-    const timeNow = now.getHours().toString().padStart(2, '0') + ':' + 
-                    now.getMinutes().toString().padStart(2, '0');
-
-    if (puasaRecord) {
-      updatePuasaRecord(puasaRecord.id, {
-        sahurTime: timeNow,
-        sahurPhoto: photoUrl,
-      });
-    } else {
-      addPuasaRecord({
-        date: today,
-        completed: true,
-        sahurTime: timeNow,
-        sahurPhoto: photoUrl,
-      });
-    }
-
+    
     setSahurTime(timeNow);
-    setPuasaRecord(getTodayPuasa());
     setShowCamera(false);
-    toast.success('Foto sahur berhasil disimpan! 📸');
+    toast.success('Foto sahur disimpan!');
   };
 
-  const handleSahurTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = e.target.value;
-    setSahurTime(newTime);
-    if (puasaRecord) {
-      updatePuasaRecord(puasaRecord.id, { sahurTime: newTime });
-      setPuasaRecord(getTodayPuasa());
-    }
-  };
-
-  const saveTilawah = () => {
-    if (!surah && !halaman) {
-      toast.error('Isi minimal surah atau halaman');
-      return;
-    }
-    addTilawahRecord({
+  const saveTilawah = async () => {
+    if (!surah && !ayat) return toast.error('Isi surah dan ayat');
+    await addTilawahRecord({
       date: today,
-      surah: surah || undefined,
-      halaman: halaman ? parseInt(halaman) : undefined,
+      surah,
+      ayat: ayat as any,
+      juz: juz ? parseInt(juz) : undefined
     });
-    setSurah('');
-    setHalaman('');
+    setSurah(''); setAyat(''); setJuz('');
     toast.success('Tilawah tercatat!');
   };
 
-  const wajibRecords = sholatRecords.filter((r) => r.type === 'wajib');
-  const completedWajib = wajibRecords.filter((r) => r.completed).length;
-  const totalWajib = wajibRecords.length;
+  const completedWajib = todaySholatRecords.filter(r => r.type === 'wajib' && r.completed).length;
+  const totalWajib = todaySholatRecords.filter(r => r.type === 'wajib').length;
   const progressPercent = totalWajib > 0 ? (completedWajib / totalWajib) * 100 : 0;
 
-  const sunnahRecords = sholatRecords.filter((r) => r.type === 'sunnah');
-  const tilawahRecords = getTodayTilawah();
-
   return (
-    <div className="min-h-full p-4 lg:p-8 space-y-6">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+    <div className="min-h-full p-4 lg:p-8 space-y-6 max-w-5xl mx-auto">
+      <header className="space-y-2">
         <h1 className="text-3xl font-bold">Assalamu'alaikum, {user?.name}! 👋</h1>
-        <p className="text-muted-foreground">Semoga hari Anda penuh berkah</p>
-      </motion.div>
+        <p className="text-muted-foreground">Beribadah dengan penuh makna sesuai Mazhab {user?.mazhab}.</p>
+      </header>
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="rounded-3xl gradient-spiritual p-8 shadow-soft-lg"
-      >
-        <div className="flex flex-col lg:flex-row items-center gap-8">
-          <ProgressRing progress={progressPercent} size={140} strokeWidth={10} />
-          <div className="flex-1 text-center lg:text-left">
-            <h2 className="text-2xl font-bold mb-2">Progress Ibadah Hari Ini</h2>
-            <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
-              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/30 backdrop-blur-sm">
-                <Star className="w-5 h-5 text-gold" />
-                <span className="font-semibold">
-                  <AnimatedCounter value={completedWajib} /> / {totalWajib} Wajib
-                </span>
+      {/* Hero Progress */}
+      <section className="rounded-3xl gradient-spiritual p-6 lg:p-8 shadow-soft-lg text-white">
+        <div className="flex flex-col lg:flex-row items-center gap-6">
+          <ProgressRing progress={progressPercent} size={130} strokeWidth={10} />
+          <div className="flex-1 text-center lg:text-left space-y-4">
+            <h2 className="text-2xl font-bold">Ibadah Hari Ini</h2>
+            <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-md border border-white/10">
+                <Star className="w-4 h-4" /> <span className="text-sm font-bold">{completedWajib}/{totalWajib} Wajib</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/30 backdrop-blur-sm">
-                <Sparkles className="w-5 h-5 text-accent-foreground" />
-                <span className="font-semibold">
-                  <AnimatedCounter value={sunnahRecords.length} /> Sunnah
-                </span>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-md border border-white/10">
+                <Sparkles className="w-4 h-4" /> <span className="text-sm font-bold">{todaySholatRecords.filter(r => r.type === 'sunnah').length} Sunnah</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/30 backdrop-blur-sm">
-                <BookOpen className="w-5 h-5 text-secondary-foreground" />
-                <span className="font-semibold">
-                  <AnimatedCounter value={tilawahRecords.length} /> Tilawah
-                </span>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-md border border-white/10">
+                <BookOpen className="w-4 h-4" /> <span className="text-sm font-bold">{todayTilawahRecords.length} Tilawah</span>
               </div>
             </div>
           </div>
         </div>
-      </motion.div>
+      </section>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-card rounded-3xl shadow-soft-md p-6 space-y-4"
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold">Sholat Wajib</h3>
-          <TrendingUp className="w-5 h-5 text-success" />
-        </div>
-
+      {/* Sholat Wajib */}
+      <section className="bg-card rounded-3xl shadow-soft-md p-6 space-y-4">
+        <h3 className="text-xl font-bold flex items-center gap-2"><TrendingUp className="text-success" /> Sholat Wajib</h3>
         <div className="space-y-3">
-          {sholatWajibList.map((sholat) => {
-            if (sholat.maleOnly && user?.gender !== 'Laki-Laki') return null;
-            
-            const record = sholatRecords.find(r => r.name === sholat.name);
+          {sholatWajibList.map(s => {
+            if (s.maleOnly && user?.gender !== 'Laki-Laki') return null;
+            const record = todaySholatRecords.find(r => r.name === s.name);
             if (!record) return null;
 
-            const Icon = sholat.icon;
-            const isJumatActive = isFriday && sholatRecords.find(r => r.name === 'jumat')?.completed;
-            const isDisabled = sholat.name === 'zuhur' && isJumatActive;
+            // Resolusi waktu dari prayerTimes dinamis
+            const displayTime = prayerTimes ? prayerTimes[s.name] : '--:--';
 
             return (
-              <div key={sholat.name} className="space-y-2">
-                <div
-                  className={cn(
-                    "flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-200",
-                    record.completed
-                      ? "bg-success/10 border-success"
-                      : record.alasan
-                      ? "bg-warning/10 border-warning"
-                      : "bg-accent/20 border-transparent hover:border-accent",
-                    isDisabled && "opacity-50"
-                  )}
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center",
-                      record.completed ? "bg-success/20" : "bg-primary/10"
-                    )}>
-                      <Icon className={cn(
-                        "w-6 h-6",
-                        record.completed ? "text-success" : "text-primary"
-                      )} />
+              <div key={s.name} className="space-y-2">
+                <div className={cn("flex items-center justify-between p-4 rounded-2xl border-2 transition-all", 
+                  record.completed ? "bg-success/5 border-success/30" : record.alasan ? "bg-warning/5 border-warning/30" : "bg-accent/5 border-transparent")}>
+                  <div className="flex items-center gap-4">
+                    <div className={cn("p-3 rounded-xl", record.completed ? "bg-success/20" : "bg-primary/10")}>
+                      <s.icon className={record.completed ? "text-success" : "text-primary"} />
                     </div>
                     <div>
-                      <p className="font-semibold">{sholat.label}</p>
-                      <p className="text-sm text-muted-foreground">{sholat.time}</p>
-                      {/* Alasan hanya muncul jika tidak sedang completed (sesuai permintaan) */}
-                      {!record.completed && record.alasan && (
-                        <p className="text-xs text-warning-foreground mt-1">
-                          {record.alasan}
-                        </p>
-                      )}
+                      <p className="font-bold capitalize">{s.label}</p>
+                      <p className="text-xs text-muted-foreground">{displayTime}</p>
+                      {record.alasan && <p className="text-xs text-warning-foreground font-medium mt-1">Alasan: {record.alasan}</p>}
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {/* Tombol Alasan hanya muncul jika sholat BELUM aktif/dicentang */}
-                    {user?.gender === 'Perempuan' && !isDisabled && !record.completed && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setExpandedAlasan(expandedAlasan === sholat.name ? null : sholat.name)}
-                        className="rounded-xl"
-                      >
-                        <ChevronDown className={cn(
-                          "w-4 h-4 transition-transform",
-                          expandedAlasan === sholat.name && "rotate-180"
-                        )} />
+                  <div className="flex items-center gap-3">
+                    {!record.completed && (
+                      <Button variant="ghost" size="icon" onClick={() => setExpandedAlasan(expandedAlasan === s.name ? null : s.name)}>
+                        <ChevronDown className={cn("transition-transform", expandedAlasan === s.name && "rotate-180")} />
                       </Button>
                     )}
-                    <Switch
-                      checked={record.completed}
-                      onCheckedChange={(checked) => toggleSholat(record.id, sholat.name, checked)}
-                      disabled={isDisabled}
-                    />
+                    <Switch checked={record.completed} onCheckedChange={(v) => toggleSholat(record.id, s.name, v)} />
                   </div>
                 </div>
-
                 <AnimatePresence>
-                  {/* Panel pemilihan alasan hanya muncul jika belum sholat */}
-                  {expandedAlasan === sholat.name && !record.completed && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="pl-4 space-y-2"
-                    >
-                      <p className="text-sm text-muted-foreground">Pilih Alasan Tidak Sholat:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {alasanOptions.map((alasan) => (
-                          <Button
-                            key={alasan}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setAlasan(record.id, alasan)}
-                            className="rounded-xl"
-                          >
-                            {alasan}
-                          </Button>
-                        ))}
-                      </div>
+                  {expandedAlasan === s.name && !record.completed && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="flex flex-wrap gap-2 p-2 bg-accent/5 rounded-xl overflow-hidden">
+                      <p className="w-full text-xs font-medium text-muted-foreground ml-1">Pilih Alasan Tidak Sholat:</p>
+                      {alasanOptions.map(a => (
+                        <Button key={a} size="sm" variant="outline" className="rounded-lg h-8 text-xs" 
+                                onClick={() => updateSholatRecord(record.id, { alasan: a, completed: false }).then(() => setExpandedAlasan(null))}>
+                          {a}
+                        </Button>
+                      ))}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -405,195 +276,144 @@ export default function DashboardPage() {
             );
           })}
         </div>
-      </motion.div>
+      </section>
 
-      {/* Bagian Sholat Sunnah, Puasa, dan Tilawah tetap sama */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-card rounded-3xl shadow-soft-md p-6 space-y-4"
-      >
-        <h3 className="text-xl font-semibold">Sholat Sunnah</h3>
+      {/* Sholat Sunnah */}
+      <section className="bg-card rounded-3xl shadow-soft-md p-6 space-y-4">
+        <h3 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-accent" /> Sholat Sunnah</h3>
         <Accordion type="multiple" className="space-y-3">
-          {sholatSunnahList.map((sholat) => {
-            const record = sunnahRecords.find(r => r.name === sholat.name);
+          {sholatSunnahList.map(s => {
+            const record = todaySholatRecords.find(r => r.name === s.name && r.type === 'sunnah');
             return (
-              <AccordionItem
-                key={sholat.name}
-                value={sholat.name}
-                className="border-2 border-transparent rounded-2xl overflow-hidden"
-              >
-                <AccordionTrigger className={cn(
-                  "px-4 py-3 hover:no-underline rounded-2xl",
-                  record ? "bg-accent/30" : "bg-accent/10 hover:bg-accent/20"
-                )}>
+              <AccordionItem key={s.name} value={s.name} className="border-none">
+                <AccordionTrigger className="hover:no-underline p-4 bg-accent/5 rounded-2xl">
                   <div className="flex items-center gap-3">
-                    <Star className={cn("w-5 h-5", record ? "text-accent-foreground" : "text-muted-foreground")} />
-                    <span className="font-medium">{sholat.label}</span>
-                    {record && <span className="text-xs text-accent-foreground">✓ {record.rakaat} rakaat</span>}
+                    <Star className={cn("w-5 h-5", record ? "text-amber-500 fill-amber-500" : "text-muted-foreground")} />
+                    <span className="font-semibold">{s.label}</span>
+                    {record && <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full">{record.rakaat} Rakaat</span>}
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4 pt-2">
-                  <SunnahRakaatSelector
-                    defaultRakaat={sholat.defaultRakaat}
-                    onSave={(rakaat) => saveSunnah(sholat.name, rakaat)}
-                  />
+                <AccordionContent className="p-4 bg-accent/5 rounded-b-2xl -mt-2 space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 bg-background rounded-xl p-1 ring-1 ring-accent/20">
+                      <Button variant="ghost" size="icon" onClick={() => saveSunnah(s.name, Math.max(0, (record?.rakaat || s.defaultRakaat) - 2))} className="h-8 w-8">-</Button>
+                      <span className="w-8 text-center font-bold">{record?.rakaat ?? s.defaultRakaat}</span>
+                      <Button variant="ghost" size="icon" onClick={() => saveSunnah(s.name, (record?.rakaat || s.defaultRakaat) + 2)} className="h-8 w-8">+</Button>
+                    </div>
+                    <Button size="sm" className="rounded-xl flex-1" onClick={() => saveSunnah(s.name, record?.rakaat ?? s.defaultRakaat)}>Simpan</Button>
+                  </div>
+                  {record && (
+                    <Button variant="ghost" size="sm" className="text-destructive w-full hover:bg-destructive/5" onClick={() => deleteSholatRecord(record.id)}>
+                      <Trash2 className="w-4 h-4 mr-2" /> Hapus Catatan
+                    </Button>
+                  )}
                 </AccordionContent>
               </AccordionItem>
             );
           })}
         </Accordion>
-      </motion.div>
+      </section>
 
-      <motion.div className="bg-card rounded-3xl shadow-soft-md p-6 space-y-6">
-        <h3 className="text-xl font-semibold flex items-center gap-2">
-          <Moon className="w-5 h-5 text-indigo-400" /> Puasa & Sahur
-        </h3>
-        <div className={cn("rounded-2xl p-6 border text-center", puasaRecord?.completed ? "bg-emerald-50 border-emerald-100" : "bg-accent/10 border-transparent")}>
-          <p className="font-medium mb-4">Apakah Anda berpuasa hari ini?</p>
-          <div className="grid grid-cols-2 gap-3">
-            <Button onClick={handlePuasaYa} variant="outline" className={cn("h-12 rounded-xl", puasaRecord?.completed && "border-emerald-500 bg-emerald-50 text-emerald-700")}>
-              <CheckCircle2 className="mr-2 w-4 h-4" /> Ya, Puasa
-            </Button>
-            <Button onClick={handlePuasaTidak} variant="outline" className={cn("h-12 rounded-xl", puasaRecord?.completed === false && "border-rose-500 bg-rose-50 text-rose-700")}>
-              <XCircle className="mr-2 w-4 h-4" /> Tidak Puasa
-            </Button>
-          </div>
+      {/* Puasa & Sahur */}
+      <section className="bg-card rounded-3xl shadow-soft-md p-6 space-y-6">
+        <h3 className="text-xl font-bold flex items-center gap-2"><Moon className="text-indigo-500" /> Puasa & Sahur</h3>
+        
+        <div className="grid grid-cols-2 gap-3">
+          <Button onClick={handlePuasaYa} variant={todayPuasaRecord?.completed ? "default" : "outline"} className="h-14 rounded-2xl border-2">
+            <CheckCircle2 className="mr-2" /> Ya, Puasa
+          </Button>
+          <Button onClick={() => setShowReasonModal(true)} variant={todayPuasaRecord?.completed === false ? "destructive" : "outline"} className="h-14 rounded-2xl border-2">
+            <XCircle className="mr-2" /> Tidak Puasa
+          </Button>
         </div>
 
-        {puasaRecord?.completed && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium ml-1">Waktu Sahur</Label>
-              <div className="relative">
-                <Input
-                  type="time"
-                  value={sahurTime}
-                  onChange={handleSahurTimeChange}
-                  className="rounded-2xl h-12 bg-accent/20 border-none pl-10 focus-visible:ring-0"
-                />
-                <Clock className="absolute left-3 top-3.5 w-5 h-5 text-muted-foreground" />
-              </div>
-            </div>
-            {!showCamera && !puasaRecord.sahurPhoto && (
-              <Button onClick={() => setShowCamera(true)} variant="outline" className="w-full h-14 rounded-2xl border-dashed border-2">
-                <Camera className="w-5 h-5 mr-2 text-primary" /> Ambil Foto Sahur & Catat Waktu
-              </Button>
-            )}
-            {showCamera && <CameraCapture onCapture={saveSahur} onCancel={() => setShowCamera(false)} />}
-            {puasaRecord.sahurPhoto && !showCamera && (
-              <div className="space-y-3">
-                <div className="relative mx-auto max-w-[280px] shadow-xl rounded-[2.5rem] overflow-hidden border-4 border-white">
-                  <img src={puasaRecord.sahurPhoto} alt="Sahur" className="w-full aspect-[3/4] object-cover" />
+        {todayPuasaRecord?.completed && (
+          <div className="space-y-4 p-4 bg-accent/5 rounded-2xl border border-dashed border-accent">
+             <div className="space-y-2">
+                <Label className="text-sm font-bold ml-1">Waktu Sahur</Label>
+                <div className="relative">
+                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5 z-10" />
+                  <Input 
+                    type="time" 
+                    value={sahurTime} 
+                    onChange={(e) => {
+                      setSahurTime(e.target.value);
+                      updatePuasaRecord(todayPuasaRecord.id, { sahurTime: e.target.value });
+                    }} 
+                    className="h-12 pl-12 rounded-xl bg-background border-none ring-1 ring-accent/20 focus-visible:ring-primary" 
+                  />
                 </div>
-                <Button variant="outline" onClick={() => setShowCamera(true)} className="w-full h-12 rounded-2xl border-primary/30 text-primary hover:bg-primary/5 font-semibold">
-                  <RefreshCw className="w-4 h-4 mr-2" /> Ganti Foto
-                </Button>
-              </div>
-            )}
+             </div>
+
+             {showCamera ? (
+               <div className="aspect-[3/4] max-w-sm mx-auto overflow-hidden rounded-3xl shadow-2xl border-4 border-white">
+                 <CameraCapture onCapture={saveSahur} onCancel={() => setShowCamera(false)} />
+               </div>
+             ) : todayPuasaRecord.sahurPhoto ? (
+                <div className="space-y-3 text-center">
+                  <div className="relative mx-auto w-48 h-64 shadow-lg rounded-3xl overflow-hidden border-4 border-white">
+                    <img src={todayPuasaRecord.sahurPhoto} className="w-full h-full object-cover" alt="Sahur" />
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setShowCamera(true)} className="rounded-xl"><RefreshCw className="mr-2 w-4 h-4" /> Ganti Foto</Button>
+                </div>
+             ) : (
+               <Button onClick={() => setShowCamera(true)} variant="secondary" className="w-full h-14 rounded-2xl">
+                 <Camera className="mr-2" /> Ambil Foto Sahur & Catat Waktu
+               </Button>
+             )}
           </div>
         )}
-      </motion.div>
+      </section>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="bg-card rounded-3xl shadow-soft-md p-6 space-y-4"
-      >
-        <h3 className="text-xl font-semibold">Tilawah Al-Qur'an</h3>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="surah">Surah</Label>
-              <Input id="surah" placeholder="Contoh: Al-Baqarah" value={surah} onChange={(e) => setSurah(e.target.value)} className="rounded-2xl" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="halaman">Halaman</Label>
-              <Input id="halaman" type="number" placeholder="1-604" value={halaman} onChange={(e) => setHalaman(e.target.value)} className="rounded-2xl" />
-            </div>
+      {/* Tilawah */}
+      <section className="bg-card rounded-3xl shadow-soft-md p-6 space-y-4">
+        <h3 className="text-xl font-bold flex items-center gap-2"><BookOpen className="text-primary" /> Tilawah Al-Qur'an</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs ml-1">Surah</Label>
+            <Input placeholder="Al-Baqarah" value={surah} onChange={e => setSurah(e.target.value)} className="rounded-xl h-11" />
           </div>
-          <Button onClick={saveTilawah} className="w-full rounded-2xl">
-            <BookOpen className="w-4 h-4 mr-2" /> Catat Tilawah
-          </Button>
-          <div className="p-4 rounded-2xl bg-accent/20">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">Progress Hari Ini</span>
-              <span className="text-sm text-muted-foreground">{tilawahRecords.length} / {tilawahTarget} halaman</span>
-            </div>
-            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-              <motion.div className="h-full gradient-accent" initial={{ width: 0 }} animate={{ width: `${(tilawahRecords.length / tilawahTarget) * 100}%` }} transition={{ duration: 0.5 }} />
-            </div>
+          <div className="space-y-1">
+            <Label className="text-xs ml-1">Juz</Label>
+            <Input type="number" placeholder="1-30" value={juz} onChange={e => setJuz(e.target.value)} className="rounded-xl h-11" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs ml-1">Ayat</Label>
+            <Input placeholder="Contoh: 1-10" value={ayat} onChange={e => setAyat(e.target.value)} className="rounded-xl h-11" />
           </div>
         </div>
-      </motion.div>
+        <Button onClick={saveTilawah} className="w-full h-12 rounded-xl gradient-primary font-bold">Catat Tilawah</Button>
+        
+        <div className="space-y-2 pt-2">
+           <div className="flex justify-between text-xs font-bold text-muted-foreground">
+              <span>Progress Hari Ini</span>
+              <span>{todayTilawahRecords.length} Catatan</span>
+           </div>
+           <div className="h-2.5 bg-accent/10 rounded-full overflow-hidden">
+              <motion.div className="h-full bg-primary" initial={{ width: 0 }} animate={{ width: `${Math.min((todayTilawahRecords.length / tilawahTarget) * 100, 100)}%` }} />
+           </div>
+        </div>
+      </section>
 
       {/* Modal Alasan Puasa */}
       <AnimatePresence>
         {showReasonModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <motion.div
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              className="bg-card rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl space-y-6"
-            >
-              <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-2 sm:hidden" />
-              <h3 className="text-2xl font-black text-center">Pilih Alasan</h3>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  ...(user?.gender === 'Perempuan' ? [{ label: 'Haid (Menstruasi)', val: 'Haid' }] : []),
-                  { label: 'Sedang Sakit', val: 'Sakit' },
-                  { label: 'Perjalanan (Safar)', val: 'Safar' },
-                  { label: 'Lupa / Tidak Niat', val: 'Lupa' },
-                  { label: 'Lainnya', val: 'Lainnya' }
-                ].map((item) => (
-                  <button
-                    key={item.val}
-                    onClick={() => setSelectedReason(item.val)}
-                    className={cn(
-                      "w-full p-4 rounded-2xl text-left font-semibold transition-all border-2",
-                      selectedReason === item.val 
-                        ? "border-primary bg-primary/10 text-primary" 
-                        : "border-transparent bg-accent/20 hover:bg-accent/40"
-                    )}
-                  >
-                    {item.label}
-                  </button>
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+            <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="bg-card w-full max-w-md p-6 rounded-[2rem] shadow-2xl space-y-4">
+              <h4 className="text-lg font-bold text-center">Kenapa tidak berpuasa?</h4>
+              <div className="grid gap-2">
+                {alasanOptions.map(r => (
+                  <Button key={r} variant={selectedReason === r ? "default" : "outline"} onClick={() => setSelectedReason(r)} className="h-12 rounded-xl text-left justify-start px-6">{r}</Button>
                 ))}
               </div>
-              {selectedReason === 'Haid' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-blue-50 text-blue-700 rounded-2xl text-sm flex gap-3">
-                  <Info size={20} className="shrink-0" />
-                  <p>Haid adalah uzur syar'i. Tidak berdosa, namun wajib qadha (mengganti) di luar bulan Ramadhan.</p>
-                </motion.div>
-              )}
-              <div className="flex gap-3 pt-2">
-                <Button variant="ghost" onClick={() => setShowReasonModal(false)} className="flex-1 h-14 rounded-2xl">Batal</Button>
-                <Button onClick={handleReasonSubmit} className="flex-1 h-14 rounded-2xl bg-primary shadow-lg">Simpan Alasan</Button>
+              <div className="flex gap-2 pt-2">
+                <Button variant="ghost" className="flex-1 rounded-xl" onClick={() => setShowReasonModal(false)}>Batal</Button>
+                <Button className="flex-1 rounded-xl" onClick={handleReasonSubmit}>Simpan</Button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-function SunnahRakaatSelector({ defaultRakaat, onSave }: { defaultRakaat: number; onSave: (rakaat: number) => void }) {
-  const [rakaat, setRakaat] = useState(defaultRakaat);
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Label>Jumlah Rakaat:</Label>
-        <div className="flex items-center gap-2 ml-auto">
-          <Button variant="outline" size="icon" onClick={() => setRakaat(Math.max(2, rakaat - 2))} className="w-8 h-8 rounded-lg">-</Button>
-          <span className="w-12 text-center font-semibold">{rakaat}</span>
-          <Button variant="outline" size="icon" onClick={() => setRakaat(rakaat + 2)} className="w-8 h-8 rounded-lg">+</Button>
-        </div>
-      </div>
-      <Button onClick={() => onSave(rakaat)} size="sm" className="w-full rounded-xl">Simpan</Button>
     </div>
   );
 }

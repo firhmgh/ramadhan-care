@@ -5,10 +5,18 @@ import { motion } from 'motion/react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '../components/ui/utils';
+import { useEffect } from 'react';
 
 export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const { sholatRecords, puasaRecords, tilawahRecords, zakatRecords, sedekahRecords, journalEntries } = useStore();
+  const { 
+    sholatRecords, puasaRecords, tilawahRecords, zakatRecords, 
+    sedekahRecords, journalEntries, fetchImsakiyah, user 
+  } = useStore();
+
+  useEffect(() => {
+    fetchImsakiyah();
+  }, [user?.mazhab]);
 
   const getDateActivities = (date: Date) => {
     const dateString = format(date, 'yyyy-MM-dd');

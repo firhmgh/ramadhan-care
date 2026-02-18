@@ -1,6 +1,10 @@
+import { createElement } from "react"; 
 import { createBrowserRouter } from "react-router-dom";
+import GlobalLayout from "./layouts/GlobalLayout";
 import RootLayout from "./layouts/RootLayout";
 import AuthLayout from "./layouts/AuthLayout";
+import AuthGuard from "./components/auth/AuthGuard";
+import GuestGuard from "./components/auth/GuestGuard";
 import LoginPage from "./pages/LoginPage";
 import ProfileSetupPage from "./pages/ProfileSetupPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -14,29 +18,39 @@ import NotFoundPage from "./pages/NotFoundPage";
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    Component: RootLayout,
+    element: createElement(GlobalLayout),
     children: [
-      { index: true, Component: DashboardPage },
-      { path: "calendar", Component: CalendarPage },
-      { path: "agenda", Component: AgendaPage },
-      { path: "filantropi", Component: ZakatSedekahPage  },
-      { path: "reflection", Component: ReflectionPage },
-      { path: "profile", Component: ProfilePage },
-      { path: "settings", Component: SettingsPage },
-      { path: "*", Component: NotFoundPage },
+      {
+        path: "/",
+        element: createElement(AuthGuard, null, createElement(RootLayout)),
+        children: [
+          { index: true, Component: DashboardPage },
+          { path: "calendar", Component: CalendarPage },
+          { path: "agenda", Component: AgendaPage },
+          { path: "filantropi", Component: ZakatSedekahPage },
+          { path: "reflection", Component: ReflectionPage },
+          { path: "profile", Component: ProfilePage },
+          { path: "settings", Component: SettingsPage },
+        ],
+      },
+      {
+        path: "/auth",
+        element: createElement(GuestGuard, null, createElement(AuthLayout)),
+        children: [
+          { index: true, Component: LoginPage },
+        ],
+      },
+      {
+        path: "/auth/setup",
+        element: createElement(AuthGuard, null, createElement(AuthLayout)),
+        children: [
+          { index: true, Component: ProfileSetupPage },
+        ],
+      },
+      {
+        path: "*",
+        Component: NotFoundPage,
+      },
     ],
-  },
-  {
-    path: "/auth",
-    Component: AuthLayout,
-    children: [
-      { index: true, Component: LoginPage },
-      { path: "setup", Component: ProfileSetupPage },
-    ],
-  },
-  {
-    path: "*",
-    Component: NotFoundPage,
   },
 ]);

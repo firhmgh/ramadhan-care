@@ -1,6 +1,4 @@
 import { Outlet, useNavigate, useLocation } from 'react-router';
-import { useEffect } from 'react';
-import { useStore } from '../store/useStore';
 import { Home, Calendar, Wallet, MessageCircle, User, Menu, Settings, ClipboardList } from 'lucide-react';
 import { cn } from '../components/ui/utils';
 import { motion } from 'motion/react';
@@ -18,37 +16,7 @@ const navigation = [
 export default function RootLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user, initialize, loading  } = useStore(); // Menambahkan initialize dari store
-
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
-  useEffect(() => {
-    if (loading) return;
-
-    if (!isAuthenticated) {
-      navigate('/auth');
-    } else if (user && !user.isProfileComplete) {
-      if (location.pathname !== '/auth/setup') {
-        navigate('/auth/setup');
-      }
-    }
-  }, [isAuthenticated, user, navigate, location.pathname, loading]);
-
-  if (loading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin text-4xl">🌙</div>
-          <p className="text-sm text-muted-foreground animate-pulse">Menyiapkan keberkahan...</p>
-        </div>
-      </div>
-    );
-  }
-  if (!isAuthenticated || (user && !user.isProfileComplete)) {
-    return null; 
-  }
+  // Logic Auth dihapus dari sini, dipindah ke AuthGuard & GlobalLayout
 
   return (
     <div className="flex h-screen bg-background overflow-hidden font-sans">
